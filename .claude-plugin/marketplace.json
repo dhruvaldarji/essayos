@@ -1,0 +1,20 @@
+{
+  "name": "dhruvaldarji",
+  "owner": {
+    "name": "Dhruval Darji"
+  },
+  "metadata": {
+    "description": "EssayOS, an idempotent, stateful, agentic operating system for writing application essays.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "essayos",
+      "source": "./",
+      "description": "Idempotent, stateful, agentic OS for writing application essays such as college admissions, scholarship and grant applications, graduate school statements, fellowships, and job letters. Builds the essay from the applicant's real experiences and verifies every claim. Portable Markdown and YAML; runnable by Claude or Codex.",
+      "version": "1.0.0",
+      "author": { "name": "Dhruval Darji" },
+      "keywords": ["essay", "residency", "personal-statement", "writing", "agentic"]
+    }
+  ]
+}

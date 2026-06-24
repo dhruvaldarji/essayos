@@ -1,0 +1,18 @@
+{
+  "name": "essayos",
+  "version": "1.0.0",
+  "description": "An idempotent, stateful, agentic operating system for writing application essays such as college admissions, scholarship and grant applications, graduate school statements, fellowships, and job letters. Builds the essay from the applicant's real experiences and verifies every claim. Portable Markdown and YAML, runnable by Claude or Codex.",
+  "author": {
+    "name": "Dhruval Darji"
+  },
+  "keywords": [
+    "essay",
+    "residency",
+    "fellowship",
+    "personal-statement",
+    "writing",
+    "agentic",
+    "idempotent",
+    "state-machine"
+  ]
+}
