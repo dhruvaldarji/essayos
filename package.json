@@ -1,0 +1,42 @@
+{
+  "name": "essayos",
+  "version": "1.0.0",
+  "description": "An idempotent, stateful, agentic operating system for writing application essays. Portable Markdown+YAML, runnable by Claude or Codex.",
+  "type": "module",
+  "bin": {
+    "essayos": "bin/essayos.mjs"
+  },
+  "scripts": {
+    "test": "node bin/essayos.mjs test",
+    "lint": "node bin/essayos.mjs lint"
+  },
+  "author": {
+    "name": "Dhruval Darji",
+    "url": "https://github.com/dhruvaldarji"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/dhruvaldarji/essayos#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dhruvaldarji/essayos.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dhruvaldarji/essayos/issues"
+  },
+  "keywords": [
+    "essay",
+    "writing",
+    "application-essay",
+    "college-admissions",
+    "statement-of-purpose",
+    "agentic",
+    "claude-code-plugin",
+    "codex",
+    "idempotent",
+    "markdown"
+  ],
+  "dependencies": {},
+  "engines": {
+    "node": ">=18"
+  }
+}
