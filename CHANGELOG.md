@@ -4,6 +4,35 @@ All notable changes to EssayOS are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-09-19
+
+### Added
+
+- **Ingest flow**: `system/Ingest`, `architecture/ReverseOutline`, `review/AITellScan`, and
+  `review/PersonalizationReview`, with the `essay-ingest` and `essay-scan` commands. An essay the applicant already
+  wrote is stored verbatim, cut into sections, claim-mapped, grounded by a targeted interview, scanned
+  for AI tells and monotone prose, and revised one applicant-approved suggestion at a time under
+  the ratchet. New artifact `IngestReport`; new fields `EssayState.mode`, `Drafts.origin`,
+  `Drafts.self_authored`, `Drafts.ingested_hash`, and suggestion decisions in `ReviewerFeedback`.
+- **Assertions**: `ai_tells_absent`, `personality_present`, `suggestion_approved`,
+  `ingest_preserved`, with mechanical proxies `ai_tells` and `sentence_variance` in the inspector.
+- **Codex packaging**: `.codex-plugin/plugin.json`, `.agents/plugins/marketplace.json`, and
+  `agent-skills/` entry skills in the Agent Skills format.
+- **Third-party skills**: humanizer 3.0.0 and simple-english 2.1.0 as Claude plugin dependencies
+  (pinned by commit in the marketplace) and as pinned vendored copies for Codex in `agent-skills/`,
+  recorded in `agent-skills/VENDORED.json` and checked by `node bin/essayos.mjs skills-sync`.
+- **Spec and evals**: ISA criteria ISC-123 onward, linter checks for manifests, vendored versions,
+  eval-suite shape, and plain-English docs, a `tests/fixtures/ai-sounding` fixture, and an `evals/`
+  suite in the `claude plugin eval` format with a credential-gated CI job.
+
+### Changed
+
+- Interview questions and applicant-facing reports follow the simple-english Plain rules
+  (`skills/CONVENTIONS.md` §5a, §9). The essay prose is exempt by contract.
+- `IncrementalWriter` and `RevisionLoop` run a humanizer pass with the `VoiceModel` samples as the
+  writing sample before storing prose, and check `ai_tells_absent` and `personality_present`.
+- README, AGENTS.md, CONTRIBUTING.md, and the command text were rewritten in plain English.
+
 ## [1.0.0] - 2026-06-23
 
 ### Added
