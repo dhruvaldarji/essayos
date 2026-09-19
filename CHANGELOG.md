@@ -16,11 +16,13 @@ All notable changes to EssayOS are documented here. The format is based on
   `Drafts.self_authored`, `Drafts.ingested_hash`, and suggestion decisions in `ReviewerFeedback`.
 - **Assertions**: `ai_tells_absent`, `personality_present`, `suggestion_approved`,
   `ingest_preserved`, with mechanical proxies `ai_tells` and `sentence_variance` in the inspector.
-- **Codex packaging**: `.codex-plugin/plugin.json`, `.agents/plugins/marketplace.json`, and
-  `agent-skills/` entry skills in the Agent Skills format.
+- **Portable packaging**: root `plugin.json` (Agent Plugins 1.0.0), `.codex-plugin/plugin.json`
+  overlay, `.agents/plugins/marketplace.json`, and entry skills in `skills/` (Agent Skills format)
+  that serve Claude Code and Codex from one set of files. `commands/` is gone; the contract docs
+  moved to `CONVENTIONS.md` and `SKILLS.md` at the root.
 - **Third-party skills**: humanizer 3.0.0 and simple-english 2.1.0 as Claude plugin dependencies
-  (pinned by commit in the marketplace) and as pinned vendored copies for Codex in `agent-skills/`,
-  recorded in `agent-skills/VENDORED.json` and checked by `node bin/essayos.mjs skills-sync`.
+  (pinned by commit in the marketplace) and as pinned vendored copies for Codex in `skills/`,
+  recorded in `skills/VENDORED.json` and checked by `node bin/essayos.mjs skills-sync`.
 - **Spec and evals**: ISA criteria ISC-123 onward, linter checks for manifests, vendored versions,
   eval-suite shape, and plain-English docs, a `tests/fixtures/ai-sounding` fixture, and an `evals/`
   suite in the `claude plugin eval` format with a credential-gated CI job.
@@ -28,7 +30,7 @@ All notable changes to EssayOS are documented here. The format is based on
 ### Changed
 
 - Interview questions and applicant-facing reports follow the simple-english Plain rules
-  (`skills/CONVENTIONS.md` §5a, §9). The essay prose is exempt by contract.
+  (`CONVENTIONS.md` §5a, §9). The essay prose is exempt by contract.
 - `IncrementalWriter` and `RevisionLoop` run a humanizer pass with the `VoiceModel` samples as the
   writing sample before storing prose, and check `ai_tells_absent` and `personality_present`.
 - README, AGENTS.md, CONTRIBUTING.md, and the command text were rewritten in plain English.
@@ -43,7 +45,7 @@ All notable changes to EssayOS are documented here. The format is based on
 - **Kernel**: Orchestrator (scheduler + convergence), AssertionEngine (named quality + system
   assertions), LearningLayer (revision history and lessons).
 - **Skills**: 39 skills across discovery, architecture, writing, review, verification, and meta
-  categories, all obeying one universal contract (`skills/CONVENTIONS.md`).
+  categories, all obeying one universal contract (`CONVENTIONS.md`).
 - **Specialists**: 6 reviewer-persona agents, also registered as Claude-plugin agents.
 - **Schemas + templates**: 18 machine-readable artifact schemas and matching blank templates.
 - **Plugin packaging**: `.claude-plugin/plugin.json`, slash commands, and `AGENTS.md` for Codex.

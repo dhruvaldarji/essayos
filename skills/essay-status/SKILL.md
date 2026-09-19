@@ -7,7 +7,8 @@ description: |
 
 # essay-status
 
-The plugin root is two directories above this file. Paths below are relative to that root.
+The plugin root is `${CLAUDE_PLUGIN_ROOT}` in Claude Code. In Codex and other runtimes it is two
+directories above this file. Paths below are relative to that root.
 
 1. Read `system/Status.md`.
 2. Read `artifacts/<essay_id>/EssayState.md` and the artifact registry.

@@ -10,7 +10,7 @@
   "repository": "https://github.com/dhruvaldarji/essayos",
   "license": "MIT",
   "keywords": ["essay", "personal-statement", "college-admissions", "scholarship", "writing", "agentic", "idempotent"],
-  "skills": "./agent-skills/",
+  "skills": "./skills/",
   "interface": {
     "displayName": "EssayOS",
     "shortDescription": "Write or revise an application essay in your own voice.",

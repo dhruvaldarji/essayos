@@ -53,9 +53,9 @@ marketplace, pinned to a tested version. Confirm the install:
 /plugin list --enabled
 ```
 
-You now have seven commands (`/essayos:essay-init`, `essay-ingest`, `essay-scan`, `essay-next`,
-`essay-status`, `essay-resume`, `essay-lint`) and six reviewer agents (`essayos-program-director`,
-`essayos-skeptic`, and others).
+You now have seven skills, usable as slash commands (`/essayos:essay-init`, `essay-ingest`,
+`essay-scan`, `essay-next`, `essay-status`, `essay-resume`, `essay-lint`), and six reviewer agents
+(`essayos-program-director`, `essayos-skeptic`, and others).
 
 To pull a newer version later:
 
@@ -73,9 +73,10 @@ codex plugin marketplace add dhruvaldarji/essayos
 codex plugin add essayos@essayos
 ```
 
-Codex loads the skills in `agent-skills/`: the seven entry skills above plus pinned copies of
-`humanizer` and `simple-english`. Say "start a new essay with EssayOS" or "review my essay with
-EssayOS" and the matching skill runs.
+The plugin follows the portable Agent Plugins layout: `plugin.json` at the root, a
+`.codex-plugin/plugin.json` overlay, and Agent Skills in `skills/`. Codex loads the seven entry
+skills above plus pinned copies of `humanizer` and `simple-english`. Say "start a new essay with
+EssayOS" or "review my essay with EssayOS" and the matching skill runs.
 
 ### Any other agent
 
@@ -164,6 +165,8 @@ person is you.
 
 ### Commands
 
+Each command is a skill in `skills/`. The same files serve Claude Code and Codex.
+
 | Command | What it does |
 |---------|--------------|
 | `/essayos:essay-init [type]` | Create a new essay workspace and collect the prompt, type, limit, and target. |
@@ -198,7 +201,7 @@ by an LLM that can read and write files.
 ```text
 You are running EssayOS, a Markdown-based essay-writing system in this repository.
 
-1. Read README.md, AGENTS.md, and skills/CONVENTIONS.md.
+1. Read README.md, AGENTS.md, and CONVENTIONS.md.
 2. Create artifacts/<essay-id>/ by copying the files from templates/, then write EssayState.md
    with my essay prompt, type, and word limit.
 3. Loop: read kernel/Orchestrator.md, look at EssayState.md, choose the next skill, read that
@@ -233,7 +236,9 @@ on-disk files.
   a skeptic, that critique the draft.
 - **Artifacts** (`schemas/` and `templates/`): every piece of state is a Markdown file with YAML
   front matter, updated by stable id.
-- **Third-party skills** (`agent-skills/`): pinned copies of `humanizer` and `simple-english`. The
+- **Entry skills** (`skills/essay-*`): the seven commands, in the Agent Skills format. One set of
+  files serves Claude Code, Codex, and any other Agent Skills runtime.
+- **Third-party skills** (`skills/humanizer`, `skills/simple-english`): pinned copies. The
   writing skills pass every span through `humanizer` with your voice samples as the reference. The
   questions and the reports you read follow `simple-english`. The essay prose never does, because
   that standard flattens text by design.
@@ -271,24 +276,25 @@ specialists/   reviewer persona library        agents/  plugin wrappers for thos
 meta/          reusable thinking skills
 schemas/       one machine-readable schema per artifact
 templates/     blank starters for each artifact
-commands/      Claude Code slash commands       .claude-plugin/  Claude plugin and marketplace
-agent-skills/  Codex entry skills + pinned humanizer and simple-english   .codex-plugin/  .agents/
+skills/        entry skills (the commands) + pinned humanizer and simple-english
+plugin.json    portable Agent Plugins manifest   .codex-plugin/ Codex overlay   .agents/ Codex marketplace
+.claude-plugin/  Claude plugin and marketplace manifests
 evals/         behavioral eval suite (claude plugin eval)
 bin/           zero-dependency inspector and self-test
 tests/         fixtures used by the self-test
 ```
 
-To add a skill, copy the front matter and body shape from an existing skill (see
-`discovery/GrillMe.md`), register it in `skills/SKILLS.md`, and run `npm test`. The linter checks
+To add a pipeline skill, copy the front matter and body shape from an existing skill (see
+`discovery/GrillMe.md`), register it in `SKILLS.md`, and run `npm test`. The linter checks
 that every `reads` and `writes` names a real artifact and that every assertion resolves. The
-contract every skill follows is in [`skills/CONVENTIONS.md`](skills/CONVENTIONS.md).
+contract every skill follows is in [`CONVENTIONS.md`](CONVENTIONS.md).
 
 To try a local checkout in Claude Code, load the plugin and its two dependencies together. The
 plugin declares `humanizer` and `simple-english` as dependencies, and Claude Code disables a plugin
 whose dependencies are not loaded:
 
 ```bash
-claude --plugin-dir . --plugin-dir agent-skills/humanizer --plugin-dir agent-skills/simple-english
+claude --plugin-dir . --plugin-dir skills/humanizer --plugin-dir skills/simple-english
 ```
 
 To update the pinned third-party skills, run `node bin/essayos.mjs skills-sync --update`, review
@@ -300,7 +306,7 @@ Contributions are welcome. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) and
 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). The short version:
 
 - Run `npm test` before opening a pull request. It must report `PASS`.
-- Keep skills lean and follow `skills/CONVENTIONS.md`.
+- Keep skills lean and follow `CONVENTIONS.md`.
 - This repository follows [Conventional Commits](https://www.conventionalcommits.org/) (`feat`,
   `test`, `docs`, `ci`, `build`).
 

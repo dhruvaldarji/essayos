@@ -80,11 +80,11 @@ interviewing. Done = every file below exists with required sections, and the cro
 - [ ] ISC-2: `README.md` documents the package layout matching the actual directory tree
 - [ ] ISC-3: `README.md` documents the OAPEVL+U loop and the two structural invariants (idempotency, ratchet)
 - [ ] ISC-4: `ISA.md` (this file) has all twelve sections populated
-- [ ] ISC-5: `skills/CONVENTIONS.md` defines the universal skill front-matter shape
-- [ ] ISC-6: `skills/CONVENTIONS.md` defines the `ask_question()` one-at-a-time protocol with info-gain stop
-- [ ] ISC-7: `skills/CONVENTIONS.md` defines idempotency (upsert-by-id, hash, staleness propagation)
-- [ ] ISC-8: `skills/CONVENTIONS.md` defines the ratchet rules referenced by writing/review skills
-- [ ] ISC-9: `skills/SKILLS.md` registry lists every skill with its category and one-line purpose
+- [ ] ISC-5: `CONVENTIONS.md` defines the universal skill front-matter shape
+- [ ] ISC-6: `CONVENTIONS.md` defines the `ask_question()` one-at-a-time protocol with info-gain stop
+- [ ] ISC-7: `CONVENTIONS.md` defines idempotency (upsert-by-id, hash, staleness propagation)
+- [ ] ISC-8: `CONVENTIONS.md` defines the ratchet rules referenced by writing/review skills
+- [ ] ISC-9: `SKILLS.md` registry lists every skill with its category and one-line purpose
 - [ ] ISC-10: directory tree contains kernel/system/discovery/architecture/writing/review/verification/specialists/meta/skills/schemas/templates/bin
 
 ### Kernel
@@ -228,24 +228,24 @@ interviewing. Done = every file below exists with required sections, and the cro
 - [x] ISC-122: Anti: idempotent replay never lowers a scored artifact below its prior best
 
 ### Codex packaging (2026-09-19)
-- [x] ISC-123: `.codex-plugin/plugin.json` exists, parses, has kebab `name`, semver `version`, `description`, `skills` path, and `interface.displayName` (lint: `lintManifests`)
+- [x] ISC-123: `plugin.json` at the root is a portable Agent Plugins 1.0.0 manifest (`$schema`, kebab `name`, semver `version`, `description`, no unknown keys, OpenAI metadata under `extensions.com.openai`), and the `.codex-plugin/plugin.json` overlay exists with `skills: ./skills/` and an `interface` identical to the root's (lint: `lintManifests`)
 - [x] ISC-124: `.agents/plugins/marketplace.json` exists, parses, and lists `essayos` with `source: {source: local, path: ./}` (lint: `lintManifests`)
 - [x] ISC-125: every directory under the Codex `skills` path has a `SKILL.md` whose `name` equals the directory name and that has a `description` (lint: `lintManifests`)
-- [x] ISC-126: the Codex entry skills cover every Claude command: `essayos`, `essay-init`, `essay-ingest`, `essay-scan`, `essay-next`, `essay-status`, `essay-resume`, `essay-lint` (lint: required files + `lintManifests`)
+- [x] ISC-126: the entry skills in `skills/` (Agent Skills format) serve Claude Code and Codex from one set of files: `essayos`, `essay-init`, `essay-ingest`, `essay-scan`, `essay-next`, `essay-status`, `essay-resume`, `essay-lint`; there is no separate `commands/` directory (lint: required files + `lintManifests`)
 - [x] ISC-127: `package.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` (metadata + essayos entry), and `.codex-plugin/plugin.json` carry the same version (lint: `lintManifests`)
 - [x] ISC-128: `claude plugin validate . --strict` passes (CI: `plugin-validate` job)
 
 ### Third-party skills: humanizer + simple-english (2026-09-19)
 - [x] ISC-129: `.claude-plugin/plugin.json` declares `humanizer` and `simple-english` in `dependencies` (lint: `lintManifests`)
 - [x] ISC-130: each dependency has an entry in `.claude-plugin/marketplace.json` with a `github` source pinned to a 40-char commit `sha` (lint: `lintManifests`)
-- [x] ISC-131: `agent-skills/VENDORED.json` records name, version, repo, ref, sha, license, and file map for each vendored skill (lint: `lintVendored`)
+- [x] ISC-131: `skills/VENDORED.json` records name, version, repo, ref, sha, license, and file map for each vendored skill (lint: `lintVendored`)
 - [x] ISC-132: each vendored `SKILL.md` has `metadata.version` equal to the pin and ships its `LICENSE` (lint: `lintVendored`)
 - [x] ISC-133: the marketplace pin (version, repo, sha) equals the VENDORED.json pin, so Claude and Codex run identical skill text; each vendored skill's `.claude-plugin/plugin.json` carries the same name and version (lint: `lintVendored`)
 - [x] ISC-134: `node bin/essayos.mjs skills-sync` compares the vendored copies with upstream at the pinned sha and `--update` rewrites both pins (manual; network)
-- [x] ISC-135: `skills/CONVENTIONS.md` §10 names both skills, their versions, what each is used for, what each is never used for, and where they live per runtime (Read)
+- [x] ISC-135: `CONVENTIONS.md` §10 names both skills, their versions, what each is used for, what each is never used for, and where they live per runtime (Read)
 - [x] ISC-136: `IncrementalWriter`, `RevisionLoop`, and `PersonalizationReview` run the humanizer pass in embedded mode with the VoiceModel samples as the writing sample before storing prose (Grep "humanizer" in each)
 - [x] ISC-137: `simple-english` governs `ask_question()` wording (§5a) and applicant-facing report prose (§9) and is never applied to essay prose (Grep "the essay prose, ever" in CONVENTIONS)
-- [x] ISC-138: README, AGENTS.md, CONTRIBUTING.md, `commands/*.md`, and `agent-skills/essay*/SKILL.md` have no em-dash or semicolon in prose and no sentence over 25 words (lint: `lintPlainDocs`)
+- [x] ISC-138: README, AGENTS.md, CONTRIBUTING.md, and `skills/essay*/SKILL.md` have no em-dash or semicolon in prose and no sentence over 25 words (lint: `lintPlainDocs`)
 
 ### Ingest flow (2026-09-19)
 - [x] ISC-139: `system/Ingest.md` stores the applicant's essay verbatim as `draft-ingested`, records `self_authored`, sets `EssayState.mode: ingest`, and never rewrites (lint: contract + guard "never rewrites")
@@ -294,7 +294,7 @@ interviewing. Done = every file below exists with required sections, and the cro
 | schemas | 16 artifact schemas + ClaimEvidenceMap | 72–90 | core-contracts | yes |
 | templates | blank starters for 16 artifacts | 91–92 | schemas | yes |
 | system | Init, Status, Resume | 93–95 | core-contracts, schemas | yes |
-| codex-packaging | Codex manifests + agent-skills entry skills | 123–128 | core-contracts | yes |
+| codex-packaging | Codex manifests + skills entry skills | 123–128 | core-contracts | yes |
 | third-party-skills | humanizer + simple-english pins, dependencies, skills-sync | 129–138 | codex-packaging | yes |
 | ingest-flow | Ingest, ReverseOutline, AITellScan, PersonalizationReview, IngestReport | 139–148 | third-party-skills, schemas | no (coherence-critical) |
 | evals | claude plugin eval suite + CI job | 149–152 | ingest-flow | yes |
@@ -303,10 +303,11 @@ interviewing. Done = every file below exists with required sections, and the cro
 
 - 2026-06-23: Markdown protocol is canonical; the zero-dep Node helper is optional. Keeps the package portable and runnable by Claude or Codex while staying as deterministic as possible.
 - 2026-06-23: EssayOS is an elicitation + arrangement + verification engine, not a generation engine. The applicant is the sole source of truth for experiences.
+- 2026-09-19: the plugin follows the portable Agent Plugins layout (root `plugin.json` + `skills/`) with a `.codex-plugin/plugin.json` overlay, per developers.openai.com/plugins/build/plugins. `commands/` was removed because Claude Code loads `skills/*/SKILL.md` too and would define every command twice; the contract docs moved from `skills/` to the root (`CONVENTIONS.md`, `SKILLS.md`).
 - 2026-09-19: humanizer and simple-english are installed as Claude plugin dependencies from this repo's marketplace (pinned by sha) and as vendored pinned copies for Codex, which has no dependency mechanism and for which blader/humanizer ships no manifest. Both pins must agree; the linter enforces it.
 - 2026-09-19: simple-english applies to questions, reports, and docs only. It flattens prose by design and would defeat the "human, not monotone" requirement if applied to the essay.
 - 2026-09-19: ingest never rewrites unasked. The ingested text is write-once; every change is a suggestion with a recorded applicant decision; an untraceable claim becomes an interview question, never an invented detail.
-- 2026-09-19: each vendored skill in `agent-skills/` carries a minimal `.claude-plugin/plugin.json` (same name and version as the pin). Reason: Claude Code disables a plugin whose declared dependencies are not loaded, so a bare `--plugin-dir .` or an eval run with only `essayos` loaded shows zero skills. Loading the vendored copies alongside satisfies the dependency; the eval cases do this via `plugins:`.
+- 2026-09-19: each vendored skill in `skills/` carries a minimal `.claude-plugin/plugin.json` (same name and version as the pin). Reason: Claude Code disables a plugin whose declared dependencies are not loaded, so a bare `--plugin-dir .` or an eval run with only `essayos` loaded shows zero skills. Loading the vendored copies alongside satisfies the dependency; the eval cases do this via `plugins:`.
 - 2026-09-19: spec/eval pattern = ISA criteria enforced by the zero-dependency linter and fixtures (always runs) + a `claude plugin eval` suite (runs only with credentials). Lint proves structure; evals prove behavior.
 - 2026-06-23: Convergence is a best-draft ratchet + ε-improvement + quality-ceiling gate — this closes both non-convergence (revision churn against a moving target) and corruption (collateral damage to good sections) at once.
 - 2026-06-23: ExperienceDatabase / ApplicantModel / VoiceModel are applicant-scoped and reusable across essay types; essay-specific artifacts are not shared. One experience corpus → many essays.

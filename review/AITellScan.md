@@ -33,7 +33,7 @@ is what evaluates it.
 `best/`), `VoiceModel.md` (the applicant's real habits, which can *license* a pattern: if the
 applicant genuinely writes in dashes, dashes are not a tell), and `LessonsLearned` for prior rules.
 Load the humanizer catalog: in Claude Code the `humanizer` skill is installed as a plugin
-dependency; in Codex and other runtimes read `agent-skills/humanizer/SKILL.md`.
+dependency; in Codex and other runtimes read `skills/humanizer/SKILL.md`.
 
 **ANALYZE** — Two passes over every section.
 1. **Tell pass.** Walk the catalog strongest first. For each hit record the section, the verbatim span,
@@ -103,4 +103,4 @@ NEXT: PersonalizationReview (ingest) | RevisionLoop (compose) | AuthenticityAudi
 - **Do not act on one weak tell.** A single triad or a single dash is how people write. Two weak tells
   in a paragraph, or one strong tell, is the bar.
 - **Use the fixed catalog.** The pattern list is the vendored humanizer version recorded in
-  `agent-skills/VENDORED.json`; a runtime-invented list makes verdicts unreproducible.
+  `skills/VENDORED.json`; a runtime-invented list makes verdicts unreproducible.

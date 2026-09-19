@@ -1,6 +1,6 @@
 {
   "name": "humanizer",
-  "description": "Vendored copy of blader/humanizer, pinned by agent-skills/VENDORED.json. Lets a local checkout satisfy the essayos dependency: claude --plugin-dir agent-skills/humanizer",
+  "description": "Vendored copy of blader/humanizer, pinned by skills/VENDORED.json. Lets a local checkout satisfy the essayos dependency: claude --plugin-dir skills/humanizer",
   "version": "3.0.0",
   "author": { "name": "blader", "url": "https://github.com/blader" },
   "homepage": "https://github.com/blader/humanizer",

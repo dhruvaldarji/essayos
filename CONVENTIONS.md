@@ -184,7 +184,7 @@ em-dashes. The structured `Output` blocks in each skill are already terse and st
 ## 10. Third-party skills EssayOS depends on
 
 Two external skills are part of the contract. They are pinned; the versions live in
-`agent-skills/VENDORED.json` and `node bin/essayos.mjs lint` checks the copies match.
+`skills/VENDORED.json` and `node bin/essayos.mjs lint` checks the copies match.
 
 | Skill | Version | Used for | Never used for |
 |-------|---------|----------|----------------|
@@ -193,10 +193,10 @@ Two external skills are part of the contract. They are pinned; the versions live
 
 **Where they live.** In Claude Code both are plugin dependencies declared in
 `.claude-plugin/plugin.json` and installed from this repo's marketplace, so they are available as the
-`humanizer` and `simple-english` skills. In Codex the plugin's `skills` path (`agent-skills/`) holds
+`humanizer` and `simple-english` skills. In Codex the plugin's `skills` path (`skills/`) holds
 pinned copies, so they are available under the same names. In any other runtime, or when a skill by
-that name is not loaded, read `agent-skills/humanizer/SKILL.md` or
-`agent-skills/simple-english/SKILL.md` directly and apply it. The behavior must be identical in all
+that name is not loaded, read `skills/humanizer/SKILL.md` or
+`skills/simple-english/SKILL.md` directly and apply it. The behavior must be identical in all
 three cases; that is why the copies are pinned to the same version the marketplace pins.
 
 **How the humanizer pass is run.** Embedded mode: input is the span plus the `VoiceModel` quoted

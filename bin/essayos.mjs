@@ -6,7 +6,7 @@
 //   state <essay_id>     deterministic read-out of an essay's on-disk state
 //   assert <essay_id>    run the field-level checks the harness CAN mechanically verify
 //   test                 run lint + assert against the bundled fixtures (used by `npm test`)
-//   skills-sync [--update]  compare agent-skills/ vendored copies with upstream at the pinned sha
+//   skills-sync [--update]  compare skills/ vendored copies with upstream at the pinned sha
 //                        (the only subcommand that touches the network; maintainers only)
 //
 // SCOPE — read this before trusting the output:
@@ -17,7 +17,7 @@
 //            parsing the artifact tables and the best/ draft. The AI-tell and variance checks are
 //            the mechanical PROXY for assert ai_tells_absent() / personality_present(); the full
 //            assertions are a judge read over the humanizer catalog and the VoiceModel.
-//   What is NOT code-enforced: the merge/ratchet/epoch invariants in skills/CONVENTIONS.md are
+//   What is NOT code-enforced: the merge/ratchet/epoch invariants in CONVENTIONS.md are
 //   interpreted by the agent at runtime, not proven here. This harness is a structural linter plus a
 //   few field checks — it is not a proof checker.
 //
@@ -96,10 +96,10 @@ function requiredFiles() {
     'README.md', 'ISA.md', 'AGENTS.md', 'package.json', 'LICENSE', 'CHANGELOG.md',
     '.claude-plugin/plugin.json', '.claude-plugin/marketplace.json',
     '.codex-plugin/plugin.json', '.agents/plugins/marketplace.json',
-    'agent-skills/VENDORED.json', 'agent-skills/essayos/SKILL.md', 'agent-skills/essay-ingest/SKILL.md',
-    'commands/essay-init.md', 'commands/essay-next.md', 'commands/essay-status.md', 'commands/essay-resume.md', 'commands/essay-lint.md', 'commands/essay-ingest.md', 'commands/essay-scan.md', 'agent-skills/essay-scan/SKILL.md',
+    'skills/VENDORED.json', 'skills/essayos/SKILL.md', 'skills/essay-ingest/SKILL.md',
+    'plugin.json', 'skills/essay-init/SKILL.md', 'skills/essay-next/SKILL.md', 'skills/essay-status/SKILL.md', 'skills/essay-resume/SKILL.md', 'skills/essay-lint/SKILL.md', 'skills/essay-scan/SKILL.md',
     '.github/workflows/ci.yml',
-    'skills/CONVENTIONS.md', 'skills/SKILLS.md',
+    'CONVENTIONS.md', 'SKILLS.md',
     'kernel/Orchestrator.md', 'kernel/AssertionEngine.md', 'kernel/LearningLayer.md',
     'system/Init.md', 'system/Status.md', 'system/Resume.md', 'system/Ingest.md',
     'architecture/ReverseOutline.md', 'review/AITellScan.md', 'review/PersonalizationReview.md',
@@ -135,10 +135,21 @@ const KEBAB = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 function lintManifests() {
   const errors = [];
   const pkg = readJson('package.json'), cp = readJson('.claude-plugin/plugin.json'), cm = readJson('.claude-plugin/marketplace.json');
-  const xp = readJson('.codex-plugin/plugin.json'), xm = readJson('.agents/plugins/marketplace.json');
-  for (const r of [pkg, cp, cm, xp, xm]) if (r.err) errors.push(r.err);
+  const xp = readJson('.codex-plugin/plugin.json'), xm = readJson('.agents/plugins/marketplace.json'), rp = readJson('plugin.json');
+  for (const r of [pkg, cp, cm, xp, xm, rp]) if (r.err) errors.push(r.err);
   if (errors.length) return errors;
   const v = pkg.json.version;
+  // Root plugin.json = portable Agent Plugins 1.0.0 manifest (agent-plugins.org schema: $schema and
+  // name required, no unknown top-level keys, client data only under extensions.<reverse-domain>).
+  const AP_KEYS = new Set(['$schema', 'name', 'version', 'description', 'author', 'homepage', 'repository', 'license', 'keywords', 'extensions']);
+  if (rp.json.$schema !== 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json') errors.push(`plugin.json: $schema must be the Agent Plugins 1.0.0 schema URL`);
+  for (const k of Object.keys(rp.json)) if (!AP_KEYS.has(k)) errors.push(`plugin.json: unknown top-level key '${k}' (schema forbids additional properties)`);
+  if (!/^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(rp.json.name || '')) errors.push(`plugin.json: name violates the Agent Plugins name pattern`);
+  if (rp.json.name !== cp.json.name) errors.push(`plugin.json: name '${rp.json.name}' != .claude-plugin name '${cp.json.name}'`);
+  if (rp.json.version !== v) errors.push(`plugin.json: version ${rp.json.version} != package.json ${v}`);
+  if (!rp.json.description) errors.push(`plugin.json: description missing`);
+  if (!rp.json.extensions?.['com.openai']?.interface?.displayName) errors.push(`plugin.json: extensions.com.openai.interface.displayName missing`);
+  if (JSON.stringify(rp.json.extensions?.['com.openai']?.interface) !== JSON.stringify(xp.json.interface)) errors.push(`plugin.json: extensions.com.openai.interface differs from .codex-plugin/plugin.json interface (keep the overlay identical to the portable manifest)`);
   const claudeEntry = (cm.json.plugins || []).find(p => p.name === 'essayos');
   if (cp.json.version !== v) errors.push(`.claude-plugin/plugin.json: version ${cp.json.version} != package.json ${v}`);
   if (xp.json.version !== v) errors.push(`.codex-plugin/plugin.json: version ${xp.json.version} != package.json ${v}`);
@@ -178,7 +189,6 @@ function lintManifests() {
       if (!/^description:/m.test(fm)) errors.push(`${skillsPath}${d}/SKILL.md: description missing`);
     }
   }
-  for (const c of lsmd('commands')) { const n = c.replace(/\.md$/, ''); if (!existsSync(join(ROOT, skillsPath || './agent-skills/', n, 'SKILL.md'))) errors.push(`commands/${c}: no Codex entry skill at ${skillsPath}${n}/SKILL.md`); }
   const xEntry = (xm.json.plugins || []).find(p => p.name === xp.json.name);
   if (!xm.json.name) errors.push(`.agents/plugins/marketplace.json: name missing`);
   if (!xEntry) errors.push(`.agents/plugins/marketplace.json: no plugin entry named '${xp.json.name}'`);
@@ -188,24 +198,24 @@ function lintManifests() {
 
 function lintVendored() {
   const errors = [];
-  const vend = readJson('agent-skills/VENDORED.json'), cm = readJson('.claude-plugin/marketplace.json');
+  const vend = readJson('skills/VENDORED.json'), cm = readJson('.claude-plugin/marketplace.json');
   if (vend.err) return [vend.err];
   for (const sk of vend.json.skills || []) {
-    const dir = join(ROOT, 'agent-skills', sk.name);
+    const dir = join(ROOT, 'skills', sk.name);
     if (!SHA40.test(sk.sha || '')) errors.push(`VENDORED.json: ${sk.name} sha is not a 40-char commit sha`);
-    for (const local of Object.keys(sk.files || {})) if (!existsSync(join(dir, local))) errors.push(`agent-skills/${sk.name}/${local}: listed in VENDORED.json but missing`);
-    if (!existsSync(join(dir, 'LICENSE'))) errors.push(`agent-skills/${sk.name}/LICENSE: missing (third-party skill must ship its license)`);
+    for (const local of Object.keys(sk.files || {})) if (!existsSync(join(dir, local))) errors.push(`skills/${sk.name}/${local}: listed in VENDORED.json but missing`);
+    if (!existsSync(join(dir, 'LICENSE'))) errors.push(`skills/${sk.name}/LICENSE: missing (third-party skill must ship its license)`);
     // Each vendored skill is also a minimal Claude plugin so a local checkout can satisfy the
     // essayos dependency (claude --plugin-dir, and the eval suite's `plugins:` list).
-    const mini = readJson(`agent-skills/${sk.name}/.claude-plugin/plugin.json`);
+    const mini = readJson(`skills/${sk.name}/.claude-plugin/plugin.json`);
     if (mini.err) errors.push(mini.err);
-    else { if (mini.json.name !== sk.name) errors.push(`agent-skills/${sk.name}/.claude-plugin/plugin.json: name != '${sk.name}'`); if (mini.json.version !== sk.version) errors.push(`agent-skills/${sk.name}/.claude-plugin/plugin.json: version ${mini.json.version} != pin ${sk.version}`); }
+    else { if (mini.json.name !== sk.name) errors.push(`skills/${sk.name}/.claude-plugin/plugin.json: name != '${sk.name}'`); if (mini.json.version !== sk.version) errors.push(`skills/${sk.name}/.claude-plugin/plugin.json: version ${mini.json.version} != pin ${sk.version}`); }
     const skill = read(join(dir, 'SKILL.md'));
     if (skill) {
       const { fm } = split(skill);
       const ver = (fm.match(/^\s+version:\s*["']?([^"'\n]+)["']?/m) || [])[1];
-      if (ver !== sk.version) errors.push(`agent-skills/${sk.name}/SKILL.md: metadata.version '${ver}' != VENDORED.json pin '${sk.version}'`);
-      if (fmValue(fm, 'name') !== sk.name) errors.push(`agent-skills/${sk.name}/SKILL.md: name != '${sk.name}'`);
+      if (ver !== sk.version) errors.push(`skills/${sk.name}/SKILL.md: metadata.version '${ver}' != VENDORED.json pin '${sk.version}'`);
+      if (fmValue(fm, 'name') !== sk.name) errors.push(`skills/${sk.name}/SKILL.md: name != '${sk.name}'`);
     }
     // The Claude marketplace must pin the SAME version and sha, so Claude (dependency) and Codex
     // (vendored copy) run identical skill text.
@@ -263,8 +273,8 @@ function lintEvals(minCases = 4) {
 // Plain-English check (simple-english / ASD-STE100 spirit) over the user-facing docs: no em-dash,
 // no semicolon in prose, no sentence over 25 words. Code, tables, headings, front matter, and
 // HTML comments are skipped. The essay prose is never subject to this; only the package docs are.
-const PLAIN_DOCS = () => ['README.md', 'AGENTS.md', 'CONTRIBUTING.md', ...lsmd('commands').map(f => `commands/${f}`),
-  ...(existsSync(join(ROOT, 'agent-skills')) ? readdirSync(join(ROOT, 'agent-skills')).filter(d => d.startsWith('essay')).map(d => `agent-skills/${d}/SKILL.md`) : [])];
+const PLAIN_DOCS = () => ['README.md', 'AGENTS.md', 'CONTRIBUTING.md',
+  ...(existsSync(join(ROOT, 'skills')) ? readdirSync(join(ROOT, 'skills')).filter(d => d.startsWith('essay')).map(d => `skills/${d}/SKILL.md`) : [])];
 const PLAIN_MAX_WORDS = 25;
 
 function plainSentences(text) {
@@ -329,11 +339,11 @@ function lint() {
   const guard = (file, needle, label) => { if (!(read(join(ROOT, file)) || '').toLowerCase().includes(needle.toLowerCase())) warn.push(`${file}: expected guard text for ${label} ("${needle}")`); };
   guard('README.md', 'works from your real experiences', 'elicit-not-fabricate');
   guard('writing/IncrementalWriter.md', 'one section', 'one-section-at-a-time');
-  guard('skills/CONVENTIONS.md', 'one', 'one-question-at-a-time');
+  guard('CONVENTIONS.md', 'one', 'one-question-at-a-time');
   guard('discovery/ThemeDiscovery.md', '2', 'theme >=2 experiences');
   guard('system/Ingest.md', 'never rewrites', 'ingest-never-rewrites');
   guard('review/PersonalizationReview.md', 'no source experience, no rewrite', 'no-source-no-rewrite');
-  guard('skills/CONVENTIONS.md', 'the essay prose, ever', 'simple-english-never-on-essay');
+  guard('CONVENTIONS.md', 'the essay prose, ever', 'simple-english-never-on-essay');
 
   const ok = errors.length === 0;
   console.log(`EssayOS lint: ${ok ? 'PASS' : 'FAIL'}  (${errors.length} errors, ${warn.length} warnings)`);
@@ -397,7 +407,7 @@ function bestDraftText(draftTxt) {
 
 // ---------------------------------------------------------------------------------------------
 // Mechanical proxies for assert ai_tells_absent() and assert personality_present().
-// Patterns follow the vendored humanizer catalog (agent-skills/humanizer/SKILL.md, v3.0.0):
+// Patterns follow the vendored humanizer catalog (skills/humanizer/SKILL.md, v3.0.0):
 // STRONG = §1–§5 (one sighting justifies an edit); WEAK = §6–§18 stock words (need company).
 // The proxy is deliberately narrow (few false positives); the judge read in the skill is broader.
 // ---------------------------------------------------------------------------------------------
@@ -543,12 +553,12 @@ function selftest() {
 }
 
 
-// skills-sync: the one network-touching subcommand. Verifies agent-skills/ copies equal upstream at
+// skills-sync: the one network-touching subcommand. Verifies skills/ copies equal upstream at
 // the pinned sha; reports the newest upstream version; --update pulls main and rewrites the pins in
 // VENDORED.json and .claude-plugin/marketplace.json so Claude (dependency) and Codex (vendored copy)
 // stay on the same version. Maintainers only; the package never needs the network at runtime.
 async function skillsSync(update) {
-  const vendPath = join(ROOT, 'agent-skills', 'VENDORED.json');
+  const vendPath = join(ROOT, 'skills', 'VENDORED.json');
   const vend = JSON.parse(read(vendPath));
   const mktPath = join(ROOT, '.claude-plugin', 'marketplace.json');
   const mkt = JSON.parse(read(mktPath));
@@ -564,13 +574,13 @@ async function skillsSync(update) {
   };
   let drift = 0, lookupFailed = 0;
   for (const sk of vend.skills) {
-    const dir = join(ROOT, 'agent-skills', sk.name);
+    const dir = join(ROOT, 'skills', sk.name);
     for (const [local, remote] of Object.entries(sk.files)) {
       const pinned = await raw(sk.repo, sk.sha, remote);
       const ours = read(join(dir, local));
       const same = ours !== null && ours === pinned;
       if (!same) drift++;
-      console.log(`  ${same ? 'OK   ' : 'DRIFT'}  agent-skills/${sk.name}/${local}  (pinned ${sk.sha.slice(0, 12)})`);
+      console.log(`  ${same ? 'OK   ' : 'DRIFT'}  skills/${sk.name}/${local}  (pinned ${sk.sha.slice(0, 12)})`);
     }
     let latestSha, latestVer;
     try {
@@ -602,4 +612,4 @@ else if (cmd === 'state') state(arg);
 else if (cmd === 'assert') assertEssay(arg);
 else if (cmd === 'test' || cmd === 'selftest') selftest();
 else if (cmd === 'skills-sync') skillsSync(arg === '--update').then(ok => process.exit(ok ? 0 : 1)).catch(e => { console.error(`skills-sync: ${e.message}`); process.exit(2); });
-else { console.log('EssayOS inspector\n  essayos lint                 structural self-test of the package (manifests, skills, docs, evals shape)\n  essayos state <id>          inspect an essay\n  essayos assert <id>         run field-level checks on an essay (word budget, themes, claims, AI tells, rhythm)\n  essayos test                lint + fixture asserts (npm test)\n  essayos skills-sync [--update]  compare vendored agent-skills with upstream (network; maintainers)'); process.exit(cmd ? 2 : 0); }
+else { console.log('EssayOS inspector\n  essayos lint                 structural self-test of the package (manifests, skills, docs, evals shape)\n  essayos state <id>          inspect an essay\n  essayos assert <id>         run field-level checks on an essay (word budget, themes, claims, AI tells, rhythm)\n  essayos test                lint + fixture asserts (npm test)\n  essayos skills-sync [--update]  compare vendored skills with upstream (network; maintainers)'); process.exit(cmd ? 2 : 0); }

@@ -1,6 +1,6 @@
 ---
 description: The user asks for the status of an essay that does not exist. The plugin must say it cannot find the workspace and must not invent a phase, score, or next step.
-plugins: ["../..", "../../agent-skills/humanizer", "../../agent-skills/simple-english"]
+plugins: ["../..", "../../skills/humanizer", "../../skills/simple-english"]
 tags: [status, anti-hallucination]
 max_turns: 10
 allowed_tools: [Read, Glob, Grep, Skill]

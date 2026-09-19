@@ -4,7 +4,7 @@ EssayOS is testable at three levels.
 
 ## 1. Package self-test (contract lint)
 
-Verifies the package is internally consistent. The contracts in `skills/CONVENTIONS.md` must hold
+Verifies the package is internally consistent. The contracts in `CONVENTIONS.md` must hold
 across every skill, schema, kernel file, and manifest.
 
 ```
@@ -25,7 +25,7 @@ Checks performed:
   `.codex-plugin/plugin.json` parse and agree on the version. Claude dependencies resolve to
   marketplace entries pinned to a commit sha. The Codex `skills` path exists and every skill
   directory has a `SKILL.md` whose `name` matches the directory.
-- **Vendored skills**: every skill in `agent-skills/VENDORED.json` is present with its LICENSE, and
+- **Vendored skills**: every skill in `skills/VENDORED.json` is present with its LICENSE, and
   its `SKILL.md` version and the marketplace pin match the recorded version and sha.
 - **Eval suite shape**: `evals/` has at least four cases, each with a prompt and graders of known
   types. This checks the files, not the behavior.

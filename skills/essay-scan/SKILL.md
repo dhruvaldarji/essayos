@@ -9,9 +9,10 @@ description: |
 
 # essay-scan
 
-The plugin root is two directories above this file. Paths below are relative to that root.
+The plugin root is `${CLAUDE_PLUGIN_ROOT}` in Claude Code. In Codex and other runtimes it is two
+directories above this file. Paths below are relative to that root.
 
-1. Read `review/AITellScan.md` and the humanizer catalog at `agent-skills/humanizer/SKILL.md`.
+1. Read `review/AITellScan.md` and the humanizer catalog at `skills/humanizer/SKILL.md`.
 2. Take the text the user gave, or read `artifacts/<essay_id>/Drafts.md` when they name an essay.
 3. Walk the catalog strongest first. For each hit, quote the exact span and name the pattern and
    why it reads as machine-written. Patterns 1 to 5 count on one sighting. Weaker patterns count
