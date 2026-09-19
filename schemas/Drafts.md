@@ -24,13 +24,20 @@ source_hashes: [SectionSpecifications:<hash>, VoiceModel:<hash>, MessageMap:<has
 best_score: <float|null>          # QualityMetrics.overall of the current best draft
 best_draft_id: <draft id|null>    # which draft in best/ is champion
 epsilon: 0.02                     # mirrors EssayState.epsilon; min improvement to accept
+origin: composed | ingested       # ingested ⇒ draft-ingested exists and is immutable
+self_authored: true | false | null   # ingest only: the applicant wrote the ingested text without AI help
+ingested_hash: <short hash|null>  # hash of draft-ingested at ingest time; assert ingest_preserved() compares against it
 updated: <ISO-8601>
 ---
 ```
 
 ## Body structure
 
-Two zones. Each draft has a stable `id` and `hash`; each section within a draft has a `sec-N` id (from
+Two zones. Every draft carries an `origin` ∈ `ingested | generated | revised`. In `mode: ingest` the
+first draft is `draft-ingested` (`origin: ingested`): the applicant's text stored verbatim. It is the
+first champion in `best/` once scored, and it is **never edited in place**. Revisions always derive a
+new draft from it (`derived_from: draft-ingested`), so the original is always recoverable and
+`assert ingest_preserved()` can prove it. Each draft has a stable `id` and `hash`; each section within a draft has a `sec-N` id (from
 `Outline`) and its own `hash` so a single section can be revised and re-scored in isolation.
 
 ```markdown
@@ -38,6 +45,7 @@ Two zones. Each draft has a stable `id` and `hash`; each section within a draft 
 - draft_id: draft-3
   score: 0.81                      # = best_score
   complete: true
+  origin: revised                  # ingested | generated | revised
   sections:
     - id: sec-1
       hash: aa01
@@ -61,6 +69,8 @@ Two zones. Each draft has a stable `id` and `hash`; each section within a draft 
 ```
 
 - **best/** holds at most one complete champion draft; its `score` equals `best_score`.
+- **draft-ingested** (ingest mode) is immutable: same `draft_id`, same section hashes, forever. A
+  candidate that changes it is a contract violation, not a revision.
 - **working/** holds candidates. A candidate is promoted to `best/` only if `score ≥ best_score + ε`
   (`assert monotonic_improvement()`); otherwise it is rejected and retained for the record.
 - Per-section `hash` enables localized revision: change one section, re-score, compare — never blanket
@@ -72,6 +82,7 @@ Two zones. Each draft has a stable `id` and `hash`; each section within a draft 
 - `source_hashes` lists `SectionSpecifications` + `VoiceModel` + `MessageMap`; any change marks `stale`.
 - Re-running the writer on unchanged specs yields a byte-identical candidate (modulo `updated`).
 - `best/` is **append-superseding**: a worse draft never overwrites the champion.
+- `draft-ingested` is write-once. `ingested_hash` is set at ingest and compared on every write.
 
 ## Example (abbreviated)
 

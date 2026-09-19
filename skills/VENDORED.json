@@ -1,0 +1,31 @@
+{
+  "$comment": "Pinned copies of third-party skills that EssayOS uses. Claude Code installs the same skills as plugin dependencies (see .claude-plugin/plugin.json). Codex and other Agent Skills runtimes read these copies. Check drift with: node bin/essayos.mjs skills-sync",
+  "skills": [
+    {
+      "name": "humanizer",
+      "version": "3.0.0",
+      "repo": "blader/humanizer",
+      "ref": "v3.0.0",
+      "sha": "9862685f575c65a8247f90369951df1b3416e3d6",
+      "license": "MIT",
+      "files": {
+        "SKILL.md": "SKILL.md",
+        "LICENSE": "LICENSE"
+      }
+    },
+    {
+      "name": "simple-english",
+      "version": "2.1.0",
+      "repo": "AminBlg/SimpleEnglish",
+      "ref": "v2.1.0",
+      "sha": "79b590fc8596523d92c26b1ea7e33236606ef069",
+      "license": "MIT",
+      "files": {
+        "SKILL.md": "skills/simple-english/SKILL.md",
+        "LICENSE": "LICENSE",
+        "references/rule-catalog.md": "skills/simple-english/references/rule-catalog.md",
+        "references/strict-vocabulary.md": "skills/simple-english/references/strict-vocabulary.md"
+      }
+    }
+  ]
+}

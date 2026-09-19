@@ -62,7 +62,7 @@ identical report.
 ## Output
 
 ```
-ESSAY:   <essay_id>  (<essay_type>, <program|generic>)
+ESSAY:   <essay_id>  (<essay_type>, <program|generic>)   MODE: <compose|ingest>
 PHASE:   <init|discovery|architecture|writing|review|verification|done>   STATUS: <in_progress|converged|blocked>
 ARTIFACTS: <n ok> / <n thin> / <n missing> / <n stale>
   Requirements .......... ok      ApplicantModel ........ thin
@@ -71,6 +71,7 @@ ARTIFACTS: <n ok> / <n thin> / <n missing> / <n stale>
 QUALITY: overall <x.xx|–> / threshold <x.xx> / ceiling <x.xx|–>   READY: <yes|no>
 NEXT_SKILL (recorded): <skill|null>
 WOULD_PICK (advisory): <skill> — <8-word reason>
+SUGGESTIONS (ingest): <n open> / <n accepted> / <n rejected>
 ```
 
 ## Gotchas

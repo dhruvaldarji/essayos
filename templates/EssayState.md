@@ -1,6 +1,7 @@
 ---
 essay_id: ""
 essay_type: ""
+mode: compose            # compose | ingest (set by system/Init or system/Ingest; never changes)
 prompt: ""
 word_limit: null
 char_limit: null
@@ -45,3 +46,4 @@ then seeds the artifact registry below with every tracked artifact at `status: m
 | QualityMetrics | QualityMetrics.md | missing | | [] | | |
 | LessonsLearned | LessonsLearned.md | missing | | [] | | |
 | ClaimEvidenceMap | ClaimEvidenceMap.md | missing | | [] | | |
+| IngestReport | IngestReport.md | missing | | [] | | |

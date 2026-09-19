@@ -1,6 +1,6 @@
 {
   "name": "essayos",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "An idempotent, stateful, agentic operating system for writing application essays. Portable Markdown+YAML, runnable by Claude or Codex.",
   "type": "module",
   "bin": {

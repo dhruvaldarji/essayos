@@ -1,7 +1,7 @@
 ---
 artifact: Requirements
 essay_id: fixture-clean
-word_limit: 50
+word_limit: 120
 essay_type: personal_statement
 ---
 

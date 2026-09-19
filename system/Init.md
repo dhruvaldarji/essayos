@@ -40,7 +40,7 @@ the workspace." Prefer collecting in this order: prompt -> essay_type -> word/ch
   Never present a form; one question at a time.
 - Once prompt, type, and limit are known (program may be null), create `artifacts/<essay_id>/` and
   copy every file from `templates/` into it verbatim (each lands at `status: missing`).
-- Write `EssayState.md`: fill `essay_id`, `essay_type`, `prompt`, `word_limit`, `char_limit`,
+- Write `EssayState.md`: set `mode: compose` (use `system/Ingest` for an existing essay), fill `essay_id`, `essay_type`, `prompt`, `word_limit`, `char_limit`,
   `program`, `created` and `updated` (now, ISO-8601). Leave `phase: init`, `status: in_progress`,
   `quality_threshold: 0.85`, `quality_overall: null`, `quality_ceiling: null`, `converged: false`,
   `next_skill: null`, `gain_floor: 0.05`, `epsilon: 0.02`, `shared_with: []` as the template seeds

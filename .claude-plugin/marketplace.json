@@ -4,17 +4,68 @@
     "name": "Dhruval Darji"
   },
   "metadata": {
-    "description": "EssayOS, an idempotent, stateful, agentic operating system for writing application essays.",
-    "version": "1.0.0"
+    "description": "EssayOS, an idempotent, stateful, agentic operating system for writing application essays, plus optional standalone installs of the two writing skills it bundles.",
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "essayos",
       "source": "./",
-      "description": "Idempotent, stateful, agentic OS for writing application essays such as college admissions, scholarship and grant applications, graduate school statements, fellowships, and job letters. Builds the essay from the applicant's real experiences and verifies every claim. Portable Markdown and YAML; runnable by Claude or Codex.",
-      "version": "1.0.0",
-      "author": { "name": "Dhruval Darji" },
-      "keywords": ["essay", "residency", "personal-statement", "writing", "agentic"]
+      "description": "Idempotent, stateful, agentic OS for writing application essays such as college admissions, scholarship and grant applications, graduate school statements, fellowships, and job letters. Builds the essay from the applicant's real experiences and verifies every claim. Ingests an essay you already wrote and proposes revisions in your voice. Portable Markdown and YAML; runnable by Claude or Codex.",
+      "version": "1.1.0",
+      "author": {
+        "name": "Dhruval Darji"
+      },
+      "keywords": [
+        "essay",
+        "residency",
+        "personal-statement",
+        "writing",
+        "agentic"
+      ]
+    },
+    {
+      "name": "humanizer",
+      "source": {
+        "source": "github",
+        "repo": "blader/humanizer",
+        "ref": "v3.0.0",
+        "sha": "9862685f575c65a8247f90369951df1b3416e3d6"
+      },
+      "description": "Optional standalone install of blader/humanizer, pinned to the same commit essayos ships in skills/humanizer. Not required: essayos carries its own copy.",
+      "version": "3.0.0",
+      "author": {
+        "name": "blader"
+      },
+      "license": "MIT",
+      "keywords": [
+        "writing",
+        "editing",
+        "humanize",
+        "prose",
+        "style"
+      ]
+    },
+    {
+      "name": "simple-english",
+      "source": {
+        "source": "github",
+        "repo": "AminBlg/SimpleEnglish",
+        "ref": "v2.1.0",
+        "sha": "79b590fc8596523d92c26b1ea7e33236606ef069"
+      },
+      "description": "Optional standalone install of AminBlg/SimpleEnglish, pinned to the same commit essayos ships in skills/simple-english. Not required: essayos carries its own copy. Note: the upstream plugin adds write-time lint hooks.",
+      "version": "2.1.0",
+      "author": {
+        "name": "AminBlg"
+      },
+      "license": "MIT",
+      "keywords": [
+        "technical-writing",
+        "documentation",
+        "ste",
+        "asd-ste100"
+      ]
     }
   ]
 }

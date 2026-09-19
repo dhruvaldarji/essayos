@@ -41,7 +41,11 @@ the budget, and the voice constraints from `VoiceModel`. Nothing beyond this one
 **EXECUTE** — Draft that one section into `working/`. Every claim ties to a real `ExperienceDatabase`
 id via `ClaimEvidenceMap` — invent nothing. Write in the applicant's voice fingerprint. Favor
 specificity over abstraction, reflection over description, growth over accomplishment, insight over
-eloquence. No clichés, no performative vulnerability, no exaggeration.
+eloquence. No clichés, no performative vulnerability, no exaggeration. Before storing, run the
+`humanizer` skill in embedded mode with the `VoiceModel` quoted spans as the writing sample
+(CONVENTIONS §10) and keep only what survives; then check the section still carries a reaction or a
+specific detail the applicant gave and that its sentence lengths vary. Clean and dry is still a
+failure.
 
 **VERIFY** — Run the assertions below on the section. Then score the candidate's contribution to a
 complete draft against `best/`. A failed assertion blocks UPDATE (fix locally using the diagnostic, or
@@ -59,7 +63,8 @@ by >= `epsilon` is `best/` replaced; otherwise `best/` is left intact. Update th
 ## Assertions
 
 Calls, per section: `assert claim_traceable(claim)`, `assert evidence_exists(claim)`,
-`assert word_budget()`, `assert voice_consistent()`. All must pass before the section's UPDATE. On any
+`assert word_budget()`, `assert voice_consistent()`, `assert ai_tells_absent()`,
+`assert personality_present(section)`. All must pass before the section's UPDATE. On any
 failure the AssertionEngine emits a located diagnostic and the fix is **localized** to this section —
 the ratchet forbids broad rewrites that could regress already-good sections.
 
@@ -74,7 +79,7 @@ already done → skip it. Two runs over unchanged specs produce byte-identical s
 
 ```
 SECTION: <section id> drafted (<n>/<total> sections now drafted)
-ASSERTIONS: <k>/4 passed | FAILED: <assert>(<arg>): <diagnostic>
+ASSERTIONS: <k>/6 passed | FAILED: <assert>(<arg>): <diagnostic>
 RATCHET: best <x.xx> -> candidate <x.xx> (accepted by >=eps | rejected, best kept)
 NEXT: <skill>
 ```
@@ -90,5 +95,9 @@ NEXT: <skill>
   downward unnoticed.
 - **Sound human, not scientific.** The process is rigorous; the prose must not read like it. Cut
   clichés and performative vulnerability; prefer the specific concrete detail over the abstract claim.
+- **Sound like a person, not a model.** The humanizer pass removes the tells (not-X-but-Y, one-line
+  closers, forced triads, stock words). The VoiceModel sample keeps it *theirs*: if they write in
+  short flat sentences, so does the section. Varied rhythm and one real reaction per section is the
+  floor, not the ceiling.
 - **Respect the ceiling gate.** Do not write toward a threshold the captured evidence cannot support —
   raise the ceiling in Discovery instead.

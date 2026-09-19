@@ -130,6 +130,23 @@ When `asks_questions: true`, all applicant interaction goes through this protoco
 Questions should feel like a curious, attentive human interviewer: specific, following the energy of
 the last answer, never interrogating from a fixed script.
 
+### 5a. Question wording (plain English)
+
+Every question the applicant sees follows the `simple-english` skill's Plain rules (see §10 for where
+the skill lives). The essay prose is exempt; the *question* is not. The rules that matter here:
+
+- One question, at most 25 words, one idea. Split a compound question into two turns.
+- Active voice, simple tenses, the applicant as the subject: "Where were you when...", not "Where
+  was it that the event was experienced?"
+- No jargon from this system. The applicant never hears "artifact," "traceable," "ratchet,"
+  "fingerprint," or "assertion." Say "the story behind that line," not "the evidence for that claim."
+- Condition before request: "If you remember the room, describe it."
+- No em-dashes, no semicolons, no stacked qualifiers, no "Great question."
+- When a question shows a proposed change (PersonalizationReview), show the before and the after
+  verbatim, one plain sentence of why, and the exact choice: accept, edit, or reject.
+
+A question that breaks these rules is a contract violation even if the interview is otherwise good.
+
 ## 6. Assertions
 
 Skills do not self-certify. They call named assertions defined in `kernel/AssertionEngine.md`, e.g.
@@ -159,4 +176,30 @@ must be fully executable by an agent reading these files alone.
 
 A skill's output is the **artifact change plus a short report** of: what unit was done, which
 assertions ran and passed, what (if anything) is now stale, and the recommended next skill. Keep
-chat output terse; the artifacts are the record.
+chat output terse; the artifacts are the record. Any prose in the report that the applicant reads
+(the `IngestReport` verdict, a status summary, an explanation of a finding) follows the
+`simple-english` Plain rules from §5a: short sentences, active voice, no system jargon, no
+em-dashes. The structured `Output` blocks in each skill are already terse and stay as they are.
+
+## 10. Third-party skills EssayOS depends on
+
+Two external skills are part of the contract. They are pinned; the versions live in
+`skills/VENDORED.json` and `node bin/essayos.mjs lint` checks the copies match.
+
+| Skill | Version | Used for | Never used for |
+|-------|---------|----------|----------------|
+| `humanizer` (blader/humanizer) | 3.0.0 | the AI-tell catalog behind `assert ai_tells_absent()`; an embedded-mode pass over every span written by `IncrementalWriter`, `RevisionLoop`, and `PersonalizationReview`, with the `VoiceModel` quoted spans as the writing sample | changing what a passage says; adding detail |
+| `simple-english` (AminBlg/SimpleEnglish) | 2.1.0 | the wording of every `ask_question()` (§5a), applicant-facing report prose (§9), and this package's own docs | the essay prose, ever (it flattens by design) |
+
+**Where they live.** Both are bundled in the plugin's `skills/` directory as pinned copies, so
+Claude Code loads them as `essayos:humanizer` and `essayos:simple-english`, and Codex loads them
+under the same names from its `skills` path. In any other runtime, or when a skill by that name is
+not loaded, read `skills/humanizer/SKILL.md` or `skills/simple-english/SKILL.md` directly and apply
+it. The plugin declares no dependencies on purpose: a dependency would duplicate the bundled copies,
+disable a bare local load, and install the upstream simple-english write-time hooks. The
+marketplace also lists both upstreams as optional standalone installs pinned to the same commit.
+
+**How the humanizer pass is run.** Embedded mode: input is the span plus the `VoiceModel` quoted
+samples as the writing sample; output is the final text only. The sample overrides the catalog where
+the applicant genuinely writes that way (the skill's own §Voice rule). The pass never adds a fact and
+never removes a claim; if it would, the span goes back to the skill that wrote it.

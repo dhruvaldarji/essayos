@@ -6,19 +6,24 @@
 //   state <essay_id>     deterministic read-out of an essay's on-disk state
 //   assert <essay_id>    run the field-level checks the harness CAN mechanically verify
 //   test                 run lint + assert against the bundled fixtures (used by `npm test`)
+//   skills-sync [--update]  compare skills/ vendored copies with upstream at the pinned sha
+//                        (the only subcommand that touches the network; maintainers only)
 //
 // SCOPE — read this before trusting the output:
 //   `lint`   verifies STRUCTURE: required files exist, skills carry the right front matter and body
 //            sections, every reads/writes names a real artifact, every `assert` name resolves.
 //   `assert` verifies a SMALL set of FIELD-LEVEL properties on a live essay (word budget, theme
-//            support count, claim traceability) by parsing the artifact tables.
-//   What is NOT code-enforced: the merge/ratchet/epoch invariants in skills/CONVENTIONS.md are
+//            support count, claim traceability, strong AI tells, sentence-length variance) by
+//            parsing the artifact tables and the best/ draft. The AI-tell and variance checks are
+//            the mechanical PROXY for assert ai_tells_absent() / personality_present(); the full
+//            assertions are a judge read over the humanizer catalog and the VoiceModel.
+//   What is NOT code-enforced: the merge/ratchet/epoch invariants in CONVENTIONS.md are
 //   interpreted by the agent at runtime, not proven here. This harness is a structural linter plus a
 //   few field checks — it is not a proof checker.
 //
 // Exit codes: 0 = pass, 1 = a check failed, 2 = usage / missing-input error (never "success on nothing").
 
-import { readFileSync, readdirSync, existsSync, realpathSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, realpathSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { join, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -88,10 +93,16 @@ function assertionCatalog() {
 
 function requiredFiles() {
   const files = [
-    'README.md', 'ISA.md', 'AGENTS.md', 'package.json', 'LICENSE',
-    '.claude-plugin/plugin.json', 'skills/CONVENTIONS.md', 'skills/SKILLS.md',
+    'README.md', 'ISA.md', 'AGENTS.md', 'package.json', 'LICENSE', 'CHANGELOG.md',
+    '.claude-plugin/plugin.json', '.claude-plugin/marketplace.json',
+    '.codex-plugin/plugin.json', '.agents/plugins/marketplace.json',
+    'skills/VENDORED.json', 'skills/essayos/SKILL.md', 'skills/essay-ingest/SKILL.md',
+    'plugin.json', 'skills/essay-init/SKILL.md', 'skills/essay-next/SKILL.md', 'skills/essay-status/SKILL.md', 'skills/essay-resume/SKILL.md', 'skills/essay-lint/SKILL.md', 'skills/essay-scan/SKILL.md',
+    '.github/workflows/ci.yml',
+    'CONVENTIONS.md', 'SKILLS.md',
     'kernel/Orchestrator.md', 'kernel/AssertionEngine.md', 'kernel/LearningLayer.md',
-    'system/Init.md', 'system/Status.md', 'system/Resume.md',
+    'system/Init.md', 'system/Status.md', 'system/Resume.md', 'system/Ingest.md',
+    'architecture/ReverseOutline.md', 'review/AITellScan.md', 'review/PersonalizationReview.md',
     'discovery/GrillMe.md', 'discovery/ApplicantModel.md', 'discovery/ExperienceGraph.md', 'discovery/ThemeDiscovery.md',
     'architecture/NarrativeArchitecture.md', 'architecture/ProgramAlignment.md', 'architecture/MessageMap.md', 'architecture/OutlineGenerator.md', 'architecture/SectionSpecifications.md',
     'writing/VoiceModel.md', 'writing/IncrementalWriter.md', 'writing/ReflectionEngine.md', 'writing/TransitionEngine.md', 'writing/ConclusionEngine.md',
@@ -100,10 +111,207 @@ function requiredFiles() {
     'specialists/NarrativePsychologist.md', 'specialists/PhysicianMentor.md', 'specialists/ProgramDirector.md', 'specialists/Skeptic.md', 'specialists/CopyEditor.md', 'specialists/AuthenticityAuditor.md',
     'meta/Council.md', 'meta/RedTeam.md', 'meta/FirstPrinciples.md', 'meta/ApertureOscillation.md', 'meta/RootCauseAnalysis.md', 'meta/CompressionExpansion.md', 'meta/Inversion.md', 'meta/Counterfactuals.md', 'meta/MemoryGraph.md', 'meta/ClaimEvidenceMapper.md', 'meta/DeliberatePractice.md',
   ];
-  for (const a of ['EssayState','Requirements','ApplicantModel','ExperienceDatabase','ExperienceGraph','ThemeGraph','NarrativeModel','ProgramFitModel','MessageMap','Outline','SectionSpecifications','VoiceModel','Drafts','ReviewerFeedback','RevisionHistory','QualityMetrics','LessonsLearned','ClaimEvidenceMap']) {
+  for (const a of ['EssayState','Requirements','ApplicantModel','ExperienceDatabase','ExperienceGraph','ThemeGraph','NarrativeModel','ProgramFitModel','MessageMap','Outline','SectionSpecifications','VoiceModel','Drafts','ReviewerFeedback','RevisionHistory','QualityMetrics','LessonsLearned','ClaimEvidenceMap','IngestReport']) {
     files.push(`schemas/${a}.md`, `templates/${a}.md`);
   }
   return files;
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// Manifest + packaging checks (ISC-123..): the Claude and Codex manifests, the vendored skills, the
+// entry skills, the eval suite, and the plain-English docs. Each returns an array of error strings.
+// ---------------------------------------------------------------------------------------------
+
+function readJson(rel) {
+  const txt = read(join(ROOT, rel));
+  if (txt === null) return { err: `missing required file: ${rel}` };
+  try { return { json: JSON.parse(txt) }; } catch (e) { return { err: `${rel}: invalid JSON (${e.message})` }; }
+}
+
+const SHA40 = /^[0-9a-f]{40}$/;
+const KEBAB = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+
+function lintManifests() {
+  const errors = [];
+  const pkg = readJson('package.json'), cp = readJson('.claude-plugin/plugin.json'), cm = readJson('.claude-plugin/marketplace.json');
+  const xp = readJson('.codex-plugin/plugin.json'), xm = readJson('.agents/plugins/marketplace.json'), rp = readJson('plugin.json');
+  for (const r of [pkg, cp, cm, xp, xm, rp]) if (r.err) errors.push(r.err);
+  if (errors.length) return errors;
+  const v = pkg.json.version;
+  // Root plugin.json = portable Agent Plugins 1.0.0 manifest (agent-plugins.org schema: $schema and
+  // name required, no unknown top-level keys, client data only under extensions.<reverse-domain>).
+  const AP_KEYS = new Set(['$schema', 'name', 'version', 'description', 'author', 'homepage', 'repository', 'license', 'keywords', 'extensions']);
+  if (rp.json.$schema !== 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json') errors.push(`plugin.json: $schema must be the Agent Plugins 1.0.0 schema URL`);
+  for (const k of Object.keys(rp.json)) if (!AP_KEYS.has(k)) errors.push(`plugin.json: unknown top-level key '${k}' (schema forbids additional properties)`);
+  if (!/^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(rp.json.name || '')) errors.push(`plugin.json: name violates the Agent Plugins name pattern`);
+  if (rp.json.name !== cp.json.name) errors.push(`plugin.json: name '${rp.json.name}' != .claude-plugin name '${cp.json.name}'`);
+  if (rp.json.version !== v) errors.push(`plugin.json: version ${rp.json.version} != package.json ${v}`);
+  if (!rp.json.description) errors.push(`plugin.json: description missing`);
+  if (!rp.json.extensions?.['com.openai']?.interface?.displayName) errors.push(`plugin.json: extensions.com.openai.interface.displayName missing`);
+  if (JSON.stringify(rp.json.extensions?.['com.openai']?.interface) !== JSON.stringify(xp.json.interface)) errors.push(`plugin.json: extensions.com.openai.interface differs from .codex-plugin/plugin.json interface (keep the overlay identical to the portable manifest)`);
+  const claudeEntry = (cm.json.plugins || []).find(p => p.name === 'essayos');
+  if (cp.json.version !== v) errors.push(`.claude-plugin/plugin.json: version ${cp.json.version} != package.json ${v}`);
+  if (xp.json.version !== v) errors.push(`.codex-plugin/plugin.json: version ${xp.json.version} != package.json ${v}`);
+  if (!claudeEntry) errors.push(`.claude-plugin/marketplace.json: no plugin entry named 'essayos'`);
+  else if (claudeEntry.version !== v) errors.push(`.claude-plugin/marketplace.json: essayos entry version ${claudeEntry.version} != package.json ${v}`);
+  if (cm.json.metadata && cm.json.metadata.version && cm.json.metadata.version !== v) errors.push(`.claude-plugin/marketplace.json: metadata.version ${cm.json.metadata.version} != package.json ${v}`);
+  // essayos declares no plugin dependencies on purpose (the vendored copies in skills/ load in every
+  // runtime; a dependency would duplicate them, disable a bare --plugin-dir load, and pull in the
+  // upstream simple-english hooks). If one is ever declared, it must resolve inside this marketplace
+  // (Claude resolves a bare name in the declaring plugin's own marketplace) and be sha-pinned.
+  if (cp.json.dependencies && cp.json.dependencies.length) errors.push(`.claude-plugin/plugin.json: dependencies declared; essayos bundles its skills in skills/ instead (see ISA decision 2026-09-19)`);
+  for (const dep of cp.json.dependencies || []) {
+    const name = typeof dep === 'string' ? dep : dep.name;
+    const entry = (cm.json.plugins || []).find(p => p.name === name);
+    if (!entry) { errors.push(`.claude-plugin/plugin.json: dependency '${name}' has no entry in .claude-plugin/marketplace.json`); continue; }
+    const src = entry.source;
+    if (!src || typeof src !== 'object' || src.source !== 'github' || !src.repo) errors.push(`.claude-plugin/marketplace.json: '${name}' must use a github source object with repo`);
+    else if (!SHA40.test(src.sha || '')) errors.push(`.claude-plugin/marketplace.json: '${name}' github source is not pinned to a 40-char sha`);
+  }
+  // Codex manifest shape (openai/codex plugin-json-spec): kebab name, semver, skills path exists,
+  // interface.displayName present; every skill dir has SKILL.md whose name matches the dir.
+  if (!KEBAB.test(xp.json.name || '')) errors.push(`.codex-plugin/plugin.json: name must be kebab-case`);
+  if (xp.json.name !== cp.json.name) errors.push(`.codex-plugin/plugin.json: name '${xp.json.name}' != .claude-plugin name '${cp.json.name}'`);
+  if (!/^\d+\.\d+\.\d+/.test(xp.json.version || '')) errors.push(`.codex-plugin/plugin.json: version is not semver`);
+  if (!xp.json.description) errors.push(`.codex-plugin/plugin.json: description missing`);
+  if (!xp.json.interface || !xp.json.interface.displayName) errors.push(`.codex-plugin/plugin.json: interface.displayName missing`);
+  if ((xp.json.interface?.defaultPrompt || []).some(p => p.length > 128) || (xp.json.interface?.defaultPrompt || []).length > 3) errors.push(`.codex-plugin/plugin.json: defaultPrompt is max 3 entries of 128 chars`);
+  const skillsPath = xp.json.skills;
+  if (typeof skillsPath !== 'string' || !skillsPath.startsWith('./') || skillsPath.includes('..')) errors.push(`.codex-plugin/plugin.json: skills must be a relative './' path inside the plugin`);
+  else if (!existsSync(join(ROOT, skillsPath))) errors.push(`.codex-plugin/plugin.json: skills path ${skillsPath} does not exist`);
+  else {
+    for (const d of readdirSync(join(ROOT, skillsPath))) {
+      const dir = join(ROOT, skillsPath, d);
+      if (!statSync(dir).isDirectory()) continue;
+      const sk = read(join(dir, 'SKILL.md'));
+      if (!sk) { errors.push(`${skillsPath}${d}/: missing SKILL.md`); continue; }
+      const { fm } = split(sk);
+      const name = fmValue(fm, 'name');
+      if (name !== d) errors.push(`${skillsPath}${d}/SKILL.md: name '${name}' != directory name`);
+      if (!/^description:/m.test(fm)) errors.push(`${skillsPath}${d}/SKILL.md: description missing`);
+    }
+  }
+  const xEntry = (xm.json.plugins || []).find(p => p.name === xp.json.name);
+  if (!xm.json.name) errors.push(`.agents/plugins/marketplace.json: name missing`);
+  if (!xEntry) errors.push(`.agents/plugins/marketplace.json: no plugin entry named '${xp.json.name}'`);
+  else if (!xEntry.source || xEntry.source.source !== 'local' || xEntry.source.path !== './') errors.push(`.agents/plugins/marketplace.json: '${xp.json.name}' source must be {source: local, path: ./}`);
+  return errors;
+}
+
+function lintVendored() {
+  const errors = [];
+  const vend = readJson('skills/VENDORED.json'), cm = readJson('.claude-plugin/marketplace.json');
+  if (vend.err) return [vend.err];
+  for (const sk of vend.json.skills || []) {
+    const dir = join(ROOT, 'skills', sk.name);
+    if (!SHA40.test(sk.sha || '')) errors.push(`VENDORED.json: ${sk.name} sha is not a 40-char commit sha`);
+    for (const local of Object.keys(sk.files || {})) if (!existsSync(join(dir, local))) errors.push(`skills/${sk.name}/${local}: listed in VENDORED.json but missing`);
+    if (!existsSync(join(dir, 'LICENSE'))) errors.push(`skills/${sk.name}/LICENSE: missing (third-party skill must ship its license)`);
+    const skill = read(join(dir, 'SKILL.md'));
+    if (skill) {
+      const { fm } = split(skill);
+      const ver = (fm.match(/^\s+version:\s*["']?([^"'\n]+)["']?/m) || [])[1];
+      if (ver !== sk.version) errors.push(`skills/${sk.name}/SKILL.md: metadata.version '${ver}' != VENDORED.json pin '${sk.version}'`);
+      if (fmValue(fm, 'name') !== sk.name) errors.push(`skills/${sk.name}/SKILL.md: name != '${sk.name}'`);
+    }
+    // The marketplace's optional standalone entries must pin the SAME version and sha as the bundled
+    // copies, so a user who installs one alongside essayos runs identical skill text.
+    if (!cm.err) {
+      const entry = (cm.json.plugins || []).find(p => p.name === sk.name);
+      if (!entry) errors.push(`.claude-plugin/marketplace.json: no entry for vendored skill '${sk.name}'`);
+      else {
+        if (entry.version !== sk.version) errors.push(`.claude-plugin/marketplace.json: '${sk.name}' version ${entry.version} != VENDORED.json ${sk.version}`);
+        if (entry.source?.sha !== sk.sha) errors.push(`.claude-plugin/marketplace.json: '${sk.name}' sha != VENDORED.json sha`);
+        if (entry.source?.repo !== sk.repo) errors.push(`.claude-plugin/marketplace.json: '${sk.name}' repo != VENDORED.json repo`);
+      }
+    }
+  }
+  return errors;
+}
+
+const GRADER_TYPES = new Set(['regex', 'tool_used', 'tool_order', 'file_exists', 'llm', 'baseline']);
+const PROMPT_KEYS = new Set(['schema_version', 'name', 'description', 'tags', 'plugins', 'runs', 'expected_outcome', 'model', 'max_turns', 'timeout_seconds', 'allowed_tools', 'append_system_prompt', 'env']);
+
+// The eval suite is the behavioral spec (`claude plugin eval` format). Lint only checks shape:
+// every case has a prompt and >=1 grader of a known type; running it needs model credentials.
+function lintEvals(minCases = 4) {
+  const errors = [];
+  const evDir = join(ROOT, 'evals');
+  if (!existsSync(evDir)) return [`missing required directory: evals/`];
+  let cases = 0;
+  for (const d of readdirSync(evDir)) {
+    if (['results', 'mocks'].includes(d) || d.startsWith('.')) continue;
+    const dir = join(evDir, d);
+    if (!statSync(dir).isDirectory()) continue;
+    const prompt = read(join(dir, 'prompt.md')), caseYaml = read(join(dir, 'case.yaml'));
+    if (!prompt && !caseYaml) { errors.push(`evals/${d}/: no prompt.md or case.yaml`); continue; }
+    cases++;
+    if (prompt) {
+      const { fm, body } = split(prompt);
+      for (const m of fm.matchAll(/^([a-z_]+):/gm)) if (!PROMPT_KEYS.has(m[1])) errors.push(`evals/${d}/prompt.md: unknown frontmatter key '${m[1]}'`);
+      if (!body.trim()) errors.push(`evals/${d}/prompt.md: empty prompt body`);
+    }
+    const gdir = join(dir, 'graders');
+    const graders = existsSync(gdir) ? readdirSync(gdir).filter(f => f.endsWith('.md')) : [];
+    if (!graders.length && !/^graders:/m.test(caseYaml || '')) errors.push(`evals/${d}/: no graders`);
+    for (const g of graders) {
+      const { fm, body } = split(read(join(gdir, g)));
+      const type = fmValue(fm, 'type');
+      if (!GRADER_TYPES.has(type)) errors.push(`evals/${d}/graders/${g}: unknown grader type '${type}'`);
+      if (type === 'llm' && !body.trim()) errors.push(`evals/${d}/graders/${g}: llm grader has no rubric body`);
+      if (type === 'regex' && !/^pattern:/m.test(fm)) errors.push(`evals/${d}/graders/${g}: regex grader has no pattern`);
+      if (type === 'tool_used' && !/^tool:/m.test(fm)) errors.push(`evals/${d}/graders/${g}: tool_used grader has no tool`);
+    }
+  }
+  if (cases < minCases) errors.push(`evals/: ${cases} case(s) found, at least ${minCases} required`);
+  return errors;
+}
+
+// Plain-English check (simple-english / ASD-STE100 spirit) over the user-facing docs: no em-dash,
+// no semicolon in prose, no sentence over 25 words. Code, tables, headings, front matter, and
+// HTML comments are skipped. The essay prose is never subject to this; only the package docs are.
+const PLAIN_DOCS = () => ['README.md', 'AGENTS.md', 'CONTRIBUTING.md',
+  ...(existsSync(join(ROOT, 'skills')) ? readdirSync(join(ROOT, 'skills')).filter(d => d.startsWith('essay')).map(d => `skills/${d}/SKILL.md`) : [])];
+const PLAIN_MAX_WORDS = 25;
+
+function plainSentences(text) {
+  const out = [];
+  let body = split(text).body.replace(/```[\s\S]*?```/g, '\n').replace(/<!--[\s\S]*?-->/g, '\n');
+  const paras = []; let cur = [];
+  for (const raw of body.split('\n')) {
+    const l = raw.replace(/\s+$/, '');
+    const isBreak = !l.trim() || /^\s*(\||#|>|\[!\[)/.test(l) || /^\s*([-*+]|\d+\.)\s/.test(l);
+    if (isBreak) { if (cur.length) paras.push(cur.join(' ')); cur = []; }
+    if (/^\s*(\||#|>|\[!\[)/.test(l) || !l.trim()) continue;
+    cur.push(l.replace(/^\s*([-*+]|\d+\.)\s+/, ''));
+  }
+  if (cur.length) paras.push(cur.join(' '));
+  for (const p of paras) {
+    const clean = p.replace(/`[^`]*`/g, 'CODE').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\*\*/g, '').replace(/\((e\.g\.|i\.e\.)[^)]*\)/g, '');
+    for (const sent of clean.split(/(?<=[.!?])\s+(?=[A-Z"'(`])/)) out.push(sent.trim());
+  }
+  return out;
+}
+
+function lintPlainDocs() {
+  const errors = [];
+  for (const rel of PLAIN_DOCS()) {
+    const txt = read(join(ROOT, rel));
+    if (txt === null) { errors.push(`missing required file: ${rel}`); continue; }
+    const body = split(txt).body.replace(/```[\s\S]*?```/g, '');
+    body.split('\n').forEach((l, i) => {
+      if (/^\s*\|/.test(l) || /<!--/.test(l)) return;
+      const stripped = l.replace(/`[^`]*`/g, '');
+      if (stripped.includes('—')) errors.push(`${rel}:${i + 1}: em-dash in prose (write two sentences or name the relation)`);
+      if (stripped.includes(';')) errors.push(`${rel}:${i + 1}: semicolon in prose (write two sentences)`);
+    });
+    for (const sent of plainSentences(txt)) {
+      const w = sent.split(/\s+/).filter(Boolean).length;
+      if (w > PLAIN_MAX_WORDS) errors.push(`${rel}: sentence of ${w} words (max ${PLAIN_MAX_WORDS}): "${sent.slice(0, 70)}..."`);
+    }
+  }
+  return errors;
 }
 
 function lint() {
@@ -124,11 +332,16 @@ function lint() {
     }
   }
 
+  for (const e of [...lintManifests(), ...lintVendored(), ...lintEvals(), ...lintPlainDocs()]) errors.push(e);
+
   const guard = (file, needle, label) => { if (!(read(join(ROOT, file)) || '').toLowerCase().includes(needle.toLowerCase())) warn.push(`${file}: expected guard text for ${label} ("${needle}")`); };
   guard('README.md', 'works from your real experiences', 'elicit-not-fabricate');
   guard('writing/IncrementalWriter.md', 'one section', 'one-section-at-a-time');
-  guard('skills/CONVENTIONS.md', 'one', 'one-question-at-a-time');
+  guard('CONVENTIONS.md', 'one', 'one-question-at-a-time');
   guard('discovery/ThemeDiscovery.md', '2', 'theme >=2 experiences');
+  guard('system/Ingest.md', 'never rewrites', 'ingest-never-rewrites');
+  guard('review/PersonalizationReview.md', 'no source experience, no rewrite', 'no-source-no-rewrite');
+  guard('CONVENTIONS.md', 'the essay prose, ever', 'simple-english-never-on-essay');
 
   const ok = errors.length === 0;
   console.log(`EssayOS lint: ${ok ? 'PASS' : 'FAIL'}  (${errors.length} errors, ${warn.length} warnings)`);
@@ -166,6 +379,7 @@ function state(id) {
   const { fm } = split(txt);
   console.log(`essay:     ${id}`);
   console.log(`type:      ${fmValue(fm, 'essay_type')}`);
+  console.log(`mode:      ${fmValue(fm, 'mode') || 'compose'}`);
   console.log(`phase:     ${fmValue(fm, 'phase')}`);
   console.log(`status:    ${fmValue(fm, 'status')}`);
   console.log(`quality:   ${fmValue(fm, 'quality_overall')} / threshold ${fmValue(fm, 'quality_threshold')} / ceiling ${fmValue(fm, 'quality_ceiling')}`);
@@ -188,11 +402,57 @@ function bestDraftText(draftTxt) {
   return body; // no best/ section -> fall back to whole body
 }
 
+
+// ---------------------------------------------------------------------------------------------
+// Mechanical proxies for assert ai_tells_absent() and assert personality_present().
+// Patterns follow the vendored humanizer catalog (skills/humanizer/SKILL.md, v3.0.0):
+// STRONG = §1–§5 (one sighting justifies an edit); WEAK = §6–§18 stock words (need company).
+// The proxy is deliberately narrow (few false positives); the judge read in the skill is broader.
+// ---------------------------------------------------------------------------------------------
+const AI_STRONG = [
+  ['§1 not-X-but-Y', /\bnot (?:just|only|merely|simply) \b[^.!?]{1,80}?\bbut\b/i],
+  ['§1 it\'s-not-X-it\'s-Y', /\b(?:it|this|that)(?:'s| is)(?:n't| not) (?:about |just )?[^.!?]{1,60}?[,;] (?:it|this|that)(?:'s| is)\b/i],
+  ['§2 one-line closer', /\b(?:let that sink in|read that again|that(?:'s| is) the real win)\b/i],
+  ['§3 deep-sounding saying', /\b(?:the real question is|at its core|what really matters|the heart of the matter|the deeper issue|nothing short of)\b/i],
+  ['§4 staged run-up', /\b(?:let'?s dive in|let'?s dive into|let'?s explore|without further ado|here'?s the thing|the thing is,)/i],
+  ['§5 arguing with no one', /\b(?:i'?m not saying|to be clear,|don'?t get me wrong|this is not to say|some might say)\b/i],
+];
+const AI_WEAK = /\b(?:delv(?:e|ed|ing)|tapestry|testament to|underscor(?:e|es|ed|ing)|multifaceted|pivotal|beacon|embark(?:ed|ing)? (?:on|upon)|foster(?:ed|ing)?|leverag(?:e|ed|ing)|navigat(?:e|ed|ing) the (?:complex|challeng)\w*|deeply resonat\w*|resonated deeply|crucial|it is worth noting|in today'?s (?:fast-paced|ever-changing)|landscape of|realm of|game-?changer|unwavering|profound(?:ly)?|transformative|a journey of|vibrant|deeply passionate)\b/gi;
+
+function aiTells(text) {
+  const strong = [], weak = [];
+  for (const [name, re] of AI_STRONG) { const m = text.match(re); if (m) strong.push(`${name}: "${m[0].slice(0, 60)}"`); }
+  for (const m of text.matchAll(AI_WEAK)) weak.push(m[0]);
+  const dashes = (text.match(/—|--/g) || []).length;
+  if (dashes >= 3) weak.push(`${dashes} dashes`);
+  return { strong, weak };
+}
+
+function sentencesOf(text) {
+  return text.replace(/\s+/g, ' ').split(/(?<=[.!?]["')]?)\s+(?=["'(]?[A-Z])/).map(s => s.trim()).filter(s => /[a-z]/i.test(s));
+}
+
+function sentenceVariance(text) {
+  const sents = sentencesOf(text);
+  const lens = sents.map(s => s.split(/\s+/).filter(Boolean).length);
+  const n = lens.length;
+  if (n < 4) return { n, skip: true };
+  const mean = lens.reduce((a, b) => a + b, 0) / n;
+  const stdev = Math.sqrt(lens.reduce((a, b) => a + (b - mean) ** 2, 0) / n);
+  let run = 1, maxRun = 1, runWord = '';
+  for (let i = 1; i < sents.length; i++) {
+    const a = sents[i - 1].split(/\s+/)[0].toLowerCase().replace(/[^a-z']/g, ''), b = sents[i].split(/\s+/)[0].toLowerCase().replace(/[^a-z']/g, '');
+    if (a === b) { run++; if (run > maxRun) { maxRun = run; runWord = b; } } else run = 1;
+  }
+  return { n, stdev, min: Math.min(...lens), max: Math.max(...lens), maxRun, runWord, skip: false };
+}
+const VARIANCE_FLOOR = 4.0, OPENER_RUN_MAX = 3;
+
 // Run the mechanically-checkable assertions against a live essay directory.
 // Returns {pass, fail, error, lines}. A missing required input is an ERROR (never a silent pass).
 function runAsserts(dir) {
-  const out = { pass: 0, fail: 0, error: 0, lines: [] };
-  const add = (tag, name, detail) => { out.lines.push(`  ${tag}  ${name}: ${detail}`); if (tag === 'PASS') out.pass++; else if (tag === 'FAIL') out.fail++; else out.error++; };
+  const out = { pass: 0, fail: 0, error: 0, skip: 0, lines: [] };
+  const add = (tag, name, detail) => { out.lines.push(`  ${tag}  ${name}: ${detail}`); if (tag === 'PASS') out.pass++; else if (tag === 'FAIL') out.fail++; else if (tag === 'SKIP') out.skip++; else out.error++; };
 
   // word_budget
   const reqTxt = read(join(dir, 'Requirements.md')), draftTxt = read(join(dir, 'Drafts.md'));
@@ -201,6 +461,27 @@ function runAsserts(dir) {
     const limit = Number(fmValue(split(reqTxt).fm, 'word_limit'));
     if (!limit) add('ERROR', 'word_budget', 'Requirements.word_limit not set');
     else { const w = wordCount(bestDraftText(draftTxt)); add(w <= limit ? 'PASS' : 'FAIL', 'word_budget', `${w} words vs limit ${limit} (best/ draft)`); }
+  }
+
+  // ai_tells — proxy for assert ai_tells_absent(): any strong tell, or >=3 weak tells, fails.
+  if (!draftTxt) add('ERROR', 'ai_tells', 'Drafts.md missing');
+  else {
+    const prose = bestDraftText(draftTxt).replace(/<!--[\s\S]*?-->/g, ' ').replace(/^\s*[#>|].*$/gm, ' ');
+    const { strong, weak } = aiTells(prose);
+    const bad = strong.length > 0 || weak.length >= 3;
+    add(bad ? 'FAIL' : 'PASS', 'ai_tells', bad ? `${strong.length} strong, ${weak.length} weak — ${[...strong, ...(weak.length ? [`weak: ${weak.slice(0, 6).join(', ')}`] : [])].join(' · ')}` : `${strong.length} strong, ${weak.length} weak (best/ draft)`);
+  }
+
+  // sentence_variance — proxy for the rhythm half of assert personality_present(): monotone fails.
+  if (!draftTxt) add('ERROR', 'sentence_variance', 'Drafts.md missing');
+  else {
+    const prose = bestDraftText(draftTxt).replace(/<!--[\s\S]*?-->/g, ' ').replace(/^\s*[#>|].*$/gm, ' ');
+    const v = sentenceVariance(prose);
+    if (v.skip) add('SKIP', 'sentence_variance', `${v.n} sentence(s); fewer than 4, variance not judged`);
+    else {
+      const monotone = v.stdev < VARIANCE_FLOOR, run = v.maxRun > OPENER_RUN_MAX;
+      add(monotone || run ? 'FAIL' : 'PASS', 'sentence_variance', `${v.n} sentences, ${v.min}–${v.max} words, stdev ${v.stdev.toFixed(1)} (floor ${VARIANCE_FLOOR})` + (run ? `; ${v.maxRun} in a row open with "${v.runWord}"` : ''));
+    }
   }
 
   // theme_supported — each theme row needs >=2 ids in the supporting_exps column
@@ -243,7 +524,7 @@ function selftest() {
   const clean = join(ROOT, 'tests', 'fixtures', 'clean'), broken = join(ROOT, 'tests', 'fixtures', 'broken');
   if (existsSync(clean)) {
     const r = runAsserts(clean);
-    const good = r.fail === 0 && r.error === 0 && r.pass >= 3;
+    const good = r.fail === 0 && r.error === 0 && r.pass >= 5;
     console.log(`fixture clean:  ${good ? 'PASS' : 'FAIL'} (${r.pass} pass, ${r.fail} fail, ${r.error} error)`);
     r.lines.forEach(l => { if (!l.includes('PASS')) console.log(l); });
     ok = ok && good;
@@ -254,8 +535,73 @@ function selftest() {
     console.log(`fixture broken: ${good ? 'PASS (correctly failed)' : 'FAIL (did not catch the planted defects)'} (${r.fail} fail, ${r.error} error)`);
     ok = ok && good;
   } else { console.log('fixture broken: MISSING'); ok = false; }
+  const ai = join(ROOT, 'tests', 'fixtures', 'ai-sounding');
+  if (existsSync(ai)) {
+    const r = runAsserts(ai);
+    // The planted defects are ONLY in the prose: the AI-tell and variance proxies must both trip,
+    // and nothing else may (proves the checks isolate the defect rather than failing on noise).
+    const tripped = r.lines.filter(l => l.includes('FAIL')).map(l => l.trim().split(/\s+/)[1].replace(':', ''));
+    const good = tripped.includes('ai_tells') && tripped.includes('sentence_variance') && tripped.length === 2 && r.error === 0;
+    console.log(`fixture ai-sounding: ${good ? 'PASS (correctly failed ai_tells + sentence_variance only)' : 'FAIL (tripped: ' + tripped.join(', ') + ')'}`);
+    r.lines.forEach(l => { if (l.includes('FAIL')) console.log(l); });
+    ok = ok && good;
+  } else { console.log('fixture ai-sounding: MISSING'); ok = false; }
   console.log(`EssayOS selftest: ${ok ? 'PASS' : 'FAIL'}`);
   process.exit(ok ? 0 : 1);
+}
+
+
+// skills-sync: the one network-touching subcommand. Verifies skills/ copies equal upstream at
+// the pinned sha; reports the newest upstream version; --update pulls main and rewrites the pins in
+// VENDORED.json and .claude-plugin/marketplace.json so Claude (dependency) and Codex (vendored copy)
+// stay on the same version. Maintainers only; the package never needs the network at runtime.
+async function skillsSync(update) {
+  const vendPath = join(ROOT, 'skills', 'VENDORED.json');
+  const vend = JSON.parse(read(vendPath));
+  const mktPath = join(ROOT, '.claude-plugin', 'marketplace.json');
+  const mkt = JSON.parse(read(mktPath));
+  const raw = async (repo, ref, path) => { const r = await fetch(`https://raw.githubusercontent.com/${repo}/${ref}/${path}`); if (!r.ok) throw new Error(`${repo}@${ref}:${path} -> HTTP ${r.status}`); return (await r.text()).replace(/\r\n/g, '\n'); };
+  // Resolve upstream main without the GitHub API (which some proxies block): git's smart-HTTP
+  // ref advertisement is a plain GET and lists every ref with its sha.
+  const headSha = async (repo) => {
+    const r = await fetch(`https://github.com/${repo}.git/info/refs?service=git-upload-pack`, { headers: { 'user-agent': 'essayos-skills-sync' } });
+    if (!r.ok) throw new Error(`${repo} info/refs -> HTTP ${r.status}`);
+    const m = (await r.text()).match(/([0-9a-f]{40}) refs\/heads\/main\b/);
+    if (!m) throw new Error(`${repo}: refs/heads/main not advertised`);
+    return m[1];
+  };
+  let drift = 0, lookupFailed = 0;
+  for (const sk of vend.skills) {
+    const dir = join(ROOT, 'skills', sk.name);
+    for (const [local, remote] of Object.entries(sk.files)) {
+      const pinned = await raw(sk.repo, sk.sha, remote);
+      const ours = read(join(dir, local));
+      const same = ours !== null && ours === pinned;
+      if (!same) drift++;
+      console.log(`  ${same ? 'OK   ' : 'DRIFT'}  skills/${sk.name}/${local}  (pinned ${sk.sha.slice(0, 12)})`);
+    }
+    let latestSha, latestVer;
+    try {
+      latestSha = await headSha(sk.repo);
+      const latestSkill = await raw(sk.repo, latestSha, sk.files['SKILL.md']);
+      latestVer = (split(latestSkill).fm.match(/^\s+version:\s*["']?([^"'\n]+)["']?/m) || [])[1];
+      console.log(`  ${sk.name}: pinned ${sk.version} @ ${sk.sha.slice(0, 12)} · upstream main ${latestVer} @ ${latestSha.slice(0, 12)}${latestSha === sk.sha ? ' (up to date)' : ' (newer available)'}`);
+    } catch (e) {
+      lookupFailed++;
+      console.log(`  ${sk.name}: pinned ${sk.version} @ ${sk.sha.slice(0, 12)} · upstream lookup failed (${e.message})`);
+      continue;
+    }
+    if (update && latestSha !== sk.sha) {
+      for (const [local, remote] of Object.entries(sk.files)) { mkdirSync(dirname(join(dir, local)), { recursive: true }); writeFileSync(join(dir, local), await raw(sk.repo, latestSha, remote)); }
+      sk.sha = latestSha; sk.version = latestVer; sk.ref = 'main';
+      const entry = mkt.plugins.find(p => p.name === sk.name);
+      if (entry) { entry.version = latestVer; entry.source.sha = latestSha; entry.source.ref = 'main'; entry.description = entry.description.replace(/Pinned to upstream .*$/, `Pinned to upstream ${latestVer}.`); }
+      console.log(`  UPDATED ${sk.name} -> ${latestVer} @ ${latestSha.slice(0, 12)} (re-run lint, review the diff, then commit)`);
+    }
+  }
+  if (update) { writeFileSync(vendPath, JSON.stringify(vend, null, 2) + '\n'); writeFileSync(mktPath, JSON.stringify(mkt, null, 2) + '\n'); }
+  console.log(`skills-sync: ${drift ? `${drift} file(s) drifted from the pinned sha` : 'vendored copies match the pinned sha'}${lookupFailed ? ` · ${lookupFailed} upstream lookup(s) failed (pins still verified)` : ''}`);
+  return drift === 0;
 }
 
 const [cmd, arg] = process.argv.slice(2);
@@ -263,4 +609,5 @@ if (cmd === 'lint') process.exit(lint() ? 0 : 1);
 else if (cmd === 'state') state(arg);
 else if (cmd === 'assert') assertEssay(arg);
 else if (cmd === 'test' || cmd === 'selftest') selftest();
-else { console.log('EssayOS inspector\n  essayos lint            structural self-test of the package\n  essayos state <id>     inspect an essay\n  essayos assert <id>    run field-level checks on an essay\n  essayos test           lint + fixture asserts (npm test)'); process.exit(cmd ? 2 : 0); }
+else if (cmd === 'skills-sync') skillsSync(arg === '--update').then(ok => process.exit(ok ? 0 : 1)).catch(e => { console.error(`skills-sync: ${e.message}`); process.exit(2); });
+else { console.log('EssayOS inspector\n  essayos lint                 structural self-test of the package (manifests, skills, docs, evals shape)\n  essayos state <id>          inspect an essay\n  essayos assert <id>         run field-level checks on an essay (word budget, themes, claims, AI tells, rhythm)\n  essayos test                lint + fixture asserts (npm test)\n  essayos skills-sync [--update]  compare vendored skills with upstream (network; maintainers)'); process.exit(cmd ? 2 : 0); }

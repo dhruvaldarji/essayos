@@ -17,3 +17,90 @@ jobs:
           node-version: '20'
       - name: Run EssayOS self-test (structural lint + fixture assertions)
         run: npm test
+
+  plugin-validate:
+    name: Claude plugin manifest validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validate plugin and marketplace manifests
+        run: claude plugin validate . --strict
+
+  codex-plugin:
+    # Codex has no `plugin validate`. The equivalent is a real install from the checkout: add it as a
+    # local marketplace, install the plugin, and require the listing to show it enabled at the
+    # package version with every entry skill cached. No Codex login is needed for a local install.
+    name: Codex plugin install check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex
+      - name: Add the checkout as a marketplace and install the plugin
+        run: |
+          codex plugin marketplace add "$GITHUB_WORKSPACE"
+          codex plugin add essayos@essayos
+          codex plugin list | tee plugin-list.txt
+          VERSION=$(node -p "require('./package.json').version")
+          grep -E "essayos@essayos +installed, enabled +$VERSION" plugin-list.txt
+      - name: Check every entry skill was cached
+        run: |
+          CACHE=$(ls -d ~/.codex/plugins/cache/essayos/essayos/*/ | head -1)
+          for d in skills/*/; do
+            n=$(basename "$d")
+            test -f "$CACHE/skills/$n/SKILL.md" || { echo "missing cached skill: $n"; exit 1; }
+          done
+          echo "cached skills: $(ls "$CACHE/skills" | tr '\n' ' ')"
+
+  plugin-evals:
+    # Behavioral spec. Every run is a real model call on the repo's key, so the job runs only when
+    # the secret is present (forks and unconfigured checkouts skip it) and stays under a cost cap.
+    name: Plugin evals (claude plugin eval)
+    runs-on: ubuntu-latest
+    needs: [selftest, plugin-validate, codex-plugin]
+    env:
+      # Either secret works: an API key from the Claude Console, or a subscription token from
+      # `claude setup-token` (Pro/Max/Team). Set exactly one.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check for credentials
+        id: creds
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ] || [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; echo "No ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN secret; skipping evals"; fi
+      - name: Install Claude Code
+        if: steps.creds.outputs.present == 'true'
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Run the eval suite
+        if: steps.creds.outputs.present == 'true'
+        run: |
+          claude plugin eval . \
+            --trust-plugin \
+            --json results.json \
+            --threshold 0.8 \
+            --ablation none \
+            --model claude-sonnet-5 \
+            --judge-model claude-haiku-4-5 \
+            --allow-tools Write Edit \
+            --no-publish \
+            --max-cost-usd 15
+      - name: Upload eval results
+        if: always() && steps.creds.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-eval-results
+          path: |
+            results.json
+            evals/results/
