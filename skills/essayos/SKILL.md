@@ -34,7 +34,7 @@ file. All paths below are relative to that root.
 | Check the package itself | `essay-lint` |
 
 If the user does not name one, pick from the table. A request to strengthen or sharpen a line,
-claim, or paragraph is `essay-ingest`: the line is the essay text for now, and the fix is one
+claim, or paragraph is `essay-ingest`. Treat the line as the essay text for now. The fix is one
 question about the real story behind it, never an invented detail. If you still cannot tell, ask
 one question.
 
