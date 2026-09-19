@@ -3,10 +3,10 @@ project: EssayOS
 slug: essayos
 effort: deep
 phase: complete
-progress: 122/122
+progress: 148/148
 mode: build
 started: 2026-06-23
-updated: 2026-06-23
+updated: 2026-09-19
 ---
 
 # ISA — EssayOS
@@ -227,6 +227,44 @@ interviewing. Done = every file below exists with required sections, and the cro
 - [x] ISC-121: staleness propagation is over a DAG; cycles are refused (CONVENTIONS §3d, Orchestrator)
 - [x] ISC-122: Anti: idempotent replay never lowers a scored artifact below its prior best
 
+### Codex packaging (2026-09-19)
+- [x] ISC-123: `.codex-plugin/plugin.json` exists, parses, has kebab `name`, semver `version`, `description`, `skills` path, and `interface.displayName` (lint: `lintManifests`)
+- [x] ISC-124: `.agents/plugins/marketplace.json` exists, parses, and lists `essayos` with `source: {source: local, path: ./}` (lint: `lintManifests`)
+- [x] ISC-125: every directory under the Codex `skills` path has a `SKILL.md` whose `name` equals the directory name and that has a `description` (lint: `lintManifests`)
+- [x] ISC-126: the Codex entry skills cover every Claude command: `essayos`, `essay-init`, `essay-ingest`, `essay-scan`, `essay-next`, `essay-status`, `essay-resume`, `essay-lint` (lint: required files + `lintManifests`)
+- [x] ISC-127: `package.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` (metadata + essayos entry), and `.codex-plugin/plugin.json` carry the same version (lint: `lintManifests`)
+- [x] ISC-128: `claude plugin validate . --strict` passes (CI: `plugin-validate` job)
+
+### Third-party skills: humanizer + simple-english (2026-09-19)
+- [x] ISC-129: `.claude-plugin/plugin.json` declares `humanizer` and `simple-english` in `dependencies` (lint: `lintManifests`)
+- [x] ISC-130: each dependency has an entry in `.claude-plugin/marketplace.json` with a `github` source pinned to a 40-char commit `sha` (lint: `lintManifests`)
+- [x] ISC-131: `agent-skills/VENDORED.json` records name, version, repo, ref, sha, license, and file map for each vendored skill (lint: `lintVendored`)
+- [x] ISC-132: each vendored `SKILL.md` has `metadata.version` equal to the pin and ships its `LICENSE` (lint: `lintVendored`)
+- [x] ISC-133: the marketplace pin (version, repo, sha) equals the VENDORED.json pin, so Claude and Codex run identical skill text (lint: `lintVendored`)
+- [x] ISC-134: `node bin/essayos.mjs skills-sync` compares the vendored copies with upstream at the pinned sha and `--update` rewrites both pins (manual; network)
+- [x] ISC-135: `skills/CONVENTIONS.md` §10 names both skills, their versions, what each is used for, what each is never used for, and where they live per runtime (Read)
+- [x] ISC-136: `IncrementalWriter`, `RevisionLoop`, and `PersonalizationReview` run the humanizer pass in embedded mode with the VoiceModel samples as the writing sample before storing prose (Grep "humanizer" in each)
+- [x] ISC-137: `simple-english` governs `ask_question()` wording (§5a) and applicant-facing report prose (§9) and is never applied to essay prose (Grep "the essay prose, ever" in CONVENTIONS)
+- [x] ISC-138: README, AGENTS.md, CONTRIBUTING.md, `commands/*.md`, and `agent-skills/essay*/SKILL.md` have no em-dash or semicolon in prose and no sentence over 25 words (lint: `lintPlainDocs`)
+
+### Ingest flow (2026-09-19)
+- [x] ISC-139: `system/Ingest.md` stores the applicant's essay verbatim as `draft-ingested`, records `self_authored`, sets `EssayState.mode: ingest`, and never rewrites (lint: contract + guard "never rewrites")
+- [x] ISC-140: `architecture/ReverseOutline.md` derives Outline, SectionSpecifications, and an inferred MessageMap from the ingested draft without changing its text (lint: contract; assertion `ingest_preserved`)
+- [x] ISC-141: `review/AITellScan.md` flags AI tells from the humanizer catalog and monotone sections, located, and never fixes (lint: contract)
+- [x] ISC-142: `review/PersonalizationReview.md` proposes one before/after suggestion at a time, sourced to a real `ExperienceDatabase` id, and records the applicant's decision before anything is applied (lint: contract + guard "no source experience, no rewrite")
+- [x] ISC-143: `kernel/Orchestrator.md` documents the ingest pipeline and routes `RevisionLoop` only on an `accepted|edited` suggestion (Grep "ingest pipeline")
+- [x] ISC-144: `kernel/AssertionEngine.md` defines `ai_tells_absent`, `personality_present`, `suggestion_approved`, and `ingest_preserved` with proxies and diagnostics (lint: assertion catalog)
+- [x] ISC-145: `bin/essayos.mjs assert` runs `ai_tells` and `sentence_variance` as mechanical proxies; `tests/fixtures/ai-sounding` trips exactly those two and `clean` passes all five (npm test)
+- [x] ISC-146: schemas and templates exist for `IngestReport`; `EssayState.mode`, `Drafts.origin/self_authored/ingested_hash`, and `ReviewerFeedback` suggestion decision fields are documented (lint: required files; Read)
+- [x] ISC-147: `GrillMe` in ingest mode targets untraceable claims first and never copies the draft into `ExperienceDatabase` (Grep "Ingest mode" in GrillMe)
+- [x] ISC-148: `VoiceModel` uses the ingested text as a sample only when `self_authored: true` (Grep "self_authored" in VoiceModel)
+
+### Behavioral evals (2026-09-19)
+- [x] ISC-149: `evals/` holds ≥4 cases in the `claude plugin eval` format, each with a prompt and graders of known types (lint: `lintEvals`)
+- [x] ISC-150: cases cover: ingest without rewrite + one question; AI tells named by quoting spans; no fabricated detail; unrelated request does not trigger; unknown essay gets no invented status (Read `evals/*/prompt.md`)
+- [x] ISC-151: CI runs the eval suite only when `ANTHROPIC_API_KEY` is present, with `--trust-plugin`, a cost cap, pinned models, and uploads `results.json` (Read `.github/workflows/ci.yml`)
+- [x] ISC-152: Anti: no eval or lint step is required for the OS to run; the package still works with no Node and no network (Read README "Optional Node tooling")
+
 ## Test Strategy
 
 | isc range | type | check | threshold | tool |
@@ -237,6 +275,9 @@ interviewing. Done = every file below exists with required sections, and the cro
 | 93–104 | invariant | documented mechanism present and consistent | 100% | Read / Grep |
 | 105–114 | anti | absence of forbidden pattern; presence of guard text | 0 violations | Grep |
 | vocabulary | consistency | EssayState/artifact/assertion names identical across files | 0 drift | Grep cross-file |
+| 123–138 | packaging | manifests parse, versions agree, pins match, docs plain | 0 errors | `bin/essayos.mjs lint` + `claude plugin validate --strict` |
+| 139–148 | content + fixture | ingest skills conform; AI-tell and rhythm proxies isolate the planted defect | 100% | `npm test` |
+| 149–152 | behavioral | eval cases score ≥ 0.8 with the plugin loaded | threshold 0.8 | `claude plugin eval` (credentialed CI) |
 
 ## Features
 
@@ -253,11 +294,19 @@ interviewing. Done = every file below exists with required sections, and the cro
 | schemas | 16 artifact schemas + ClaimEvidenceMap | 72–90 | core-contracts | yes |
 | templates | blank starters for 16 artifacts | 91–92 | schemas | yes |
 | system | Init, Status, Resume | 93–95 | core-contracts, schemas | yes |
+| codex-packaging | Codex manifests + agent-skills entry skills | 123–128 | core-contracts | yes |
+| third-party-skills | humanizer + simple-english pins, dependencies, skills-sync | 129–138 | codex-packaging | yes |
+| ingest-flow | Ingest, ReverseOutline, AITellScan, PersonalizationReview, IngestReport | 139–148 | third-party-skills, schemas | no (coherence-critical) |
+| evals | claude plugin eval suite + CI job | 149–152 | ingest-flow | yes |
 
 ## Decisions
 
 - 2026-06-23: Markdown protocol is canonical; the zero-dep Node helper is optional. Keeps the package portable and runnable by Claude or Codex while staying as deterministic as possible.
 - 2026-06-23: EssayOS is an elicitation + arrangement + verification engine, not a generation engine. The applicant is the sole source of truth for experiences.
+- 2026-09-19: humanizer and simple-english are installed as Claude plugin dependencies from this repo's marketplace (pinned by sha) and as vendored pinned copies for Codex, which has no dependency mechanism and for which blader/humanizer ships no manifest. Both pins must agree; the linter enforces it.
+- 2026-09-19: simple-english applies to questions, reports, and docs only. It flattens prose by design and would defeat the "human, not monotone" requirement if applied to the essay.
+- 2026-09-19: ingest never rewrites unasked. The ingested text is write-once; every change is a suggestion with a recorded applicant decision; an untraceable claim becomes an interview question, never an invented detail.
+- 2026-09-19: spec/eval pattern = ISA criteria enforced by the zero-dependency linter and fixtures (always runs) + a `claude plugin eval` suite (runs only with credentials). Lint proves structure; evals prove behavior.
 - 2026-06-23: Convergence is a best-draft ratchet + ε-improvement + quality-ceiling gate — this closes both non-convergence (revision churn against a moving target) and corruption (collateral damage to good sections) at once.
 - 2026-06-23: ExperienceDatabase / ApplicantModel / VoiceModel are applicant-scoped and reusable across essay types; essay-specific artifacts are not shared. One experience corpus → many essays.
 - 2026-06-23: Core contracts (README, CONVENTIONS, EssayState schema, kernel) were authored as one coherent unit before the leaf skills, because cross-file vocabulary drift is the primary risk for a system this size.

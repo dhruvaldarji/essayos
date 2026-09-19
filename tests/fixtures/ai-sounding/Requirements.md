@@ -1,11 +1,11 @@
 ---
 artifact: Requirements
-essay_id: fixture-clean
-word_limit: 120
+essay_id: fixture-ai-sounding
+word_limit: 400
 essay_type: personal_statement
 ---
 
-# Requirements (fixture: clean)
+# Requirements (fixture: ai-sounding)
 
 | id | ask | source | satisfied_by | status |
 |----|-----|--------|--------------|--------|
