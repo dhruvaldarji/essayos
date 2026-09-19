@@ -195,6 +195,11 @@ function lintVendored() {
     if (!SHA40.test(sk.sha || '')) errors.push(`VENDORED.json: ${sk.name} sha is not a 40-char commit sha`);
     for (const local of Object.keys(sk.files || {})) if (!existsSync(join(dir, local))) errors.push(`agent-skills/${sk.name}/${local}: listed in VENDORED.json but missing`);
     if (!existsSync(join(dir, 'LICENSE'))) errors.push(`agent-skills/${sk.name}/LICENSE: missing (third-party skill must ship its license)`);
+    // Each vendored skill is also a minimal Claude plugin so a local checkout can satisfy the
+    // essayos dependency (claude --plugin-dir, and the eval suite's `plugins:` list).
+    const mini = readJson(`agent-skills/${sk.name}/.claude-plugin/plugin.json`);
+    if (mini.err) errors.push(mini.err);
+    else { if (mini.json.name !== sk.name) errors.push(`agent-skills/${sk.name}/.claude-plugin/plugin.json: name != '${sk.name}'`); if (mini.json.version !== sk.version) errors.push(`agent-skills/${sk.name}/.claude-plugin/plugin.json: version ${mini.json.version} != pin ${sk.version}`); }
     const skill = read(join(dir, 'SKILL.md'));
     if (skill) {
       const { fm } = split(skill);

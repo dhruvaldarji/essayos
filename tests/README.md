@@ -72,6 +72,9 @@ exist, and stays out of the way on unrelated requests.
 claude plugin eval . --trust-plugin --ablation none --allow-tools Write Edit --max-cost-usd 5
 ```
 
+Each case lists the plugin and its two vendored dependency plugins in its `plugins` field. Without
+them, Claude Code disables `essayos` for unsatisfied dependencies and every skill grader fails.
+
 Every run and every `llm` grader is a model call on your credentials. CI runs the suite only when
 `ANTHROPIC_API_KEY` is set, under a cost cap, and uploads `results.json`.
 

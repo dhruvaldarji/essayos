@@ -240,7 +240,7 @@ interviewing. Done = every file below exists with required sections, and the cro
 - [x] ISC-130: each dependency has an entry in `.claude-plugin/marketplace.json` with a `github` source pinned to a 40-char commit `sha` (lint: `lintManifests`)
 - [x] ISC-131: `agent-skills/VENDORED.json` records name, version, repo, ref, sha, license, and file map for each vendored skill (lint: `lintVendored`)
 - [x] ISC-132: each vendored `SKILL.md` has `metadata.version` equal to the pin and ships its `LICENSE` (lint: `lintVendored`)
-- [x] ISC-133: the marketplace pin (version, repo, sha) equals the VENDORED.json pin, so Claude and Codex run identical skill text (lint: `lintVendored`)
+- [x] ISC-133: the marketplace pin (version, repo, sha) equals the VENDORED.json pin, so Claude and Codex run identical skill text; each vendored skill's `.claude-plugin/plugin.json` carries the same name and version (lint: `lintVendored`)
 - [x] ISC-134: `node bin/essayos.mjs skills-sync` compares the vendored copies with upstream at the pinned sha and `--update` rewrites both pins (manual; network)
 - [x] ISC-135: `skills/CONVENTIONS.md` §10 names both skills, their versions, what each is used for, what each is never used for, and where they live per runtime (Read)
 - [x] ISC-136: `IncrementalWriter`, `RevisionLoop`, and `PersonalizationReview` run the humanizer pass in embedded mode with the VoiceModel samples as the writing sample before storing prose (Grep "humanizer" in each)
@@ -306,6 +306,7 @@ interviewing. Done = every file below exists with required sections, and the cro
 - 2026-09-19: humanizer and simple-english are installed as Claude plugin dependencies from this repo's marketplace (pinned by sha) and as vendored pinned copies for Codex, which has no dependency mechanism and for which blader/humanizer ships no manifest. Both pins must agree; the linter enforces it.
 - 2026-09-19: simple-english applies to questions, reports, and docs only. It flattens prose by design and would defeat the "human, not monotone" requirement if applied to the essay.
 - 2026-09-19: ingest never rewrites unasked. The ingested text is write-once; every change is a suggestion with a recorded applicant decision; an untraceable claim becomes an interview question, never an invented detail.
+- 2026-09-19: each vendored skill in `agent-skills/` carries a minimal `.claude-plugin/plugin.json` (same name and version as the pin). Reason: Claude Code disables a plugin whose declared dependencies are not loaded, so a bare `--plugin-dir .` or an eval run with only `essayos` loaded shows zero skills. Loading the vendored copies alongside satisfies the dependency; the eval cases do this via `plugins:`.
 - 2026-09-19: spec/eval pattern = ISA criteria enforced by the zero-dependency linter and fixtures (always runs) + a `claude plugin eval` suite (runs only with credentials). Lint proves structure; evals prove behavior.
 - 2026-06-23: Convergence is a best-draft ratchet + ε-improvement + quality-ceiling gate — this closes both non-convergence (revision churn against a moving target) and corruption (collateral damage to good sections) at once.
 - 2026-06-23: ExperienceDatabase / ApplicantModel / VoiceModel are applicant-scoped and reusable across essay types; essay-specific artifacts are not shared. One experience corpus → many essays.

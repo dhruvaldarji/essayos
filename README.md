@@ -283,6 +283,14 @@ To add a skill, copy the front matter and body shape from an existing skill (see
 that every `reads` and `writes` names a real artifact and that every assertion resolves. The
 contract every skill follows is in [`skills/CONVENTIONS.md`](skills/CONVENTIONS.md).
 
+To try a local checkout in Claude Code, load the plugin and its two dependencies together. The
+plugin declares `humanizer` and `simple-english` as dependencies, and Claude Code disables a plugin
+whose dependencies are not loaded:
+
+```bash
+claude --plugin-dir . --plugin-dir agent-skills/humanizer --plugin-dir agent-skills/simple-english
+```
+
 To update the pinned third-party skills, run `node bin/essayos.mjs skills-sync --update`, review
 the diff, and run `npm test`. This is the only command that uses the network.
 

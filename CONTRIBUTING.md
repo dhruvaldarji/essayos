@@ -43,6 +43,18 @@ Copy the front-matter and body shape from any existing skill. See `kernel/Orches
 kernel shape, or `discovery/GrillMe.md` for a pipeline skill. Run the linter. It will tell you what
 is missing.
 
+## Testing a checkout in Claude Code
+
+Load the plugin together with its two dependencies. Each vendored skill under `agent-skills/` is
+also a minimal Claude plugin for this purpose:
+
+```bash
+claude --plugin-dir . --plugin-dir agent-skills/humanizer --plugin-dir agent-skills/simple-english
+```
+
+If you load only `.`, Claude Code reports the dependencies as missing and disables the plugin. The
+eval cases list all three directories in their `plugins` field for the same reason.
+
 ## Updating the pinned third-party skills
 
 `humanizer` and `simple-english` are pinned by version and commit in `agent-skills/VENDORED.json`

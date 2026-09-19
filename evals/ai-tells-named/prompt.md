@@ -1,5 +1,6 @@
 ---
 description: An applicant asks whether one paragraph sounds like AI. The plugin must name the specific tells by quoting the spans, not give a vague verdict, and must not rewrite the paragraph unasked.
+plugins: ["../..", "../../agent-skills/humanizer", "../../agent-skills/simple-english"]
 tags: [ai-tells]
 max_turns: 15
 allowed_tools: [Read, Glob, Grep, Skill]
