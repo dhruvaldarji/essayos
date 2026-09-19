@@ -37,6 +37,27 @@ Init → Requirements
      → Verification: ConsistencyChecker → NarrativeVerifier → FinalReviewer
 ```
 
+When `EssayState.mode` is `ingest` (the applicant brought an existing essay), the pipeline is the
+**ingest pipeline** instead. The draft exists first, so structure is read out of it, every claim
+starts unproven, the interview is targeted at the gaps, and revision is one applicant-approved
+suggestion at a time:
+
+```
+Ingest → ReverseOutline → ClaimEvidenceMapper
+       → Discovery (targeted): GrillMe → ApplicantModel → ExperienceGraph → ThemeDiscovery → ProgramAlignment
+       → Writing:   VoiceModel
+       → Review:    AITellScan → AuthenticityAuditor → CommitteeReview
+                    → PersonalizationReview ⇄ RevisionLoop   (one suggestion, one decision, one applied fix)
+       → Verification: ConsistencyChecker → NarrativeVerifier → FinalReviewer
+```
+
+Ingest-mode rules the scheduler enforces: `draft-ingested` is the first champion in `best/` once scored
+and is never edited in place; `RevisionLoop` may apply only a suggestion with
+`applicant_decision ∈ {accepted, edited}` (`assert suggestion_approved()`); an untraceable claim routes
+to `GrillMe` (targeted) before any rewrite of that passage; and `NarrativeArchitecture`,
+`OutlineGenerator`, and `IncrementalWriter` are not scheduled (the structure and the prose already
+exist). `IngestReport` is tracked only in this mode.
+
 For each artifact compute one of: `missing`, `thin`, `stale`, `ok`. An artifact is **stale** when any
 of its `source_hashes` no longer matches the current upstream hash (see CONVENTIONS §3).
 
@@ -51,7 +72,10 @@ of its `source_hashes` no longer matches the current upstream hash (see CONVENTI
    `quality_threshold > ceiling`, route back to `discovery/GrillMe` (more evidence raises the
    ceiling) rather than revising against an unreachable target.
 
-**EXECUTE** — Set `EssayState.next_skill` to the chosen skill and emit a one-line rationale. The
+**EXECUTE** — Set `EssayState.next_skill` to the chosen skill and emit a one-line rationale. In
+`mode: ingest`, when `ReviewerFeedback` holds a suggestion that is `accepted|edited` and not yet
+applied, the next skill is always `RevisionLoop`; when it holds an undecided `proposed` suggestion,
+the next skill is `PersonalizationReview` (ask, do not apply). The
 Orchestrator does not run the skill itself; it hands off. (An autonomous runtime may immediately
 invoke the named skill and re-enter the Orchestrator after.)
 
@@ -117,6 +141,7 @@ Running the Orchestrator twice in a row changes nothing except `updated`.
 ## Output
 
 ```
+MODE:  <compose|ingest>
 PHASE: <discovery|architecture|writing|review|verification|done>
 STATE: <n artifacts ok, n thin, n missing, n stale>
 NEXT:  <skill> — <8-word reason>

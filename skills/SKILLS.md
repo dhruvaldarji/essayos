@@ -17,6 +17,7 @@ callable.
 | `system/Init` | Create `artifacts/<essay_id>/` from templates; write first EssayState. |
 | `system/Status` | Report phase, artifact statuses, quality vs threshold/ceiling, next skill. |
 | `system/Resume` | Reconstruct state from disk; route to Orchestrator (proves restartability). |
+| `system/Ingest` | Bring an existing essay in verbatim, record who wrote it, set `mode: ingest`. Never rewrites. |
 
 ## Discovery
 | Skill | Purpose |
@@ -34,6 +35,7 @@ callable.
 | `architecture/MessageMap` | Fix core message, supporting themes, stories, emotional objectives. |
 | `architecture/OutlineGenerator` | Generate section skeletons (no prose). |
 | `architecture/SectionSpecifications` | Per-section purpose/evidence/emotion/transition/takeaway. |
+| `architecture/ReverseOutline` | (ingest) Read Outline, SectionSpecifications, and an inferred MessageMap out of an existing draft. |
 
 ## Writing
 | Skill | Purpose |
@@ -50,6 +52,8 @@ callable.
 | `review/AuthenticityAuditor` | Virtue demonstrated, no clichés, no performative vulnerability. |
 | `review/CommitteeReview` | Simulate Program Director / Faculty / Busy Reviewer / Skeptic. |
 | `review/RevisionLoop` | Issue→RootCause→Fix→LocalizedRevision→Reverify→History; ratchet. |
+| `review/AITellScan` | Locate AI tells (humanizer catalog) and monotone sections; flag, never fix. |
+| `review/PersonalizationReview` | (ingest) One voice-preserving, experience-grounded suggestion at a time; the applicant decides each. |
 
 ## Verification
 | Skill | Purpose |

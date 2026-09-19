@@ -45,7 +45,11 @@ the Orchestrator's stall escalation instead of attempting a broad rewrite. **Bro
 forbidden by the ratchet.**
 
 **EXECUTE** — Make the **Localized Revision** in `working/` only. Touch nothing outside the targeted
-span. `best/` is never edited directly.
+span. `best/` is never edited directly. In `mode: ingest`, the revision *is* the suggestion's `after`
+text, verbatim as the applicant accepted or edited it; the RevisionLoop applies, it does not
+re-author. Whatever the mode, the revised span passes through the `humanizer` skill in embedded mode
+with the `VoiceModel` quoted spans as the writing sample (CONVENTIONS §10) before scoring, so a fix
+for one finding never introduces a new tell.
 
 **VERIFY** — **Reverify**: re-run the assertions the finding implicated and recompute `QualityMetrics`
 for the candidate. Then apply the ratchet via `assert monotonic_improvement()`:
@@ -69,6 +73,11 @@ the next Review/Verification step.
 
 ## Assertions
 
+- `assert suggestion_approved(suggestion)` — (ingest mode) the suggestion being applied carries
+  `applicant_decision ∈ {accepted, edited}` and a `decided_at`. On fail, nothing is written; a
+  `proposed` or `rejected` suggestion is never applied. This gate runs before EXECUTE, not after.
+- `assert ai_tells_absent()` — the revised span introduces no strong AI tell. On fail, the candidate is
+  rejected regardless of score.
 - `assert monotonic_improvement()` — the candidate scores ≥ `best` by ≥ ε. On fail, the diagnostic
   reports the delta and that it is below ε; the candidate is discarded and `best` stands. This is the
   gate that makes convergence terminate instead of thrash and guards good sections from regression.
@@ -108,3 +117,8 @@ NEXT:    Orchestrator (Review/Verification step)
 - **Cause is process, never person.** A thin scene means the interview question was too broad, not that
   the applicant failed. Fix the cause upstream when you can.
 - **Never edit `best/` in place.** Promote a verified candidate; do not mutate the champion.
+- **In ingest mode, the applicant's decision is the license.** No decision, no edit. An accepted
+  suggestion that fails the ratchet is still recorded as accepted; the applicant is told the score did
+  not move and asked whether to keep it anyway (their call, recorded in `RevisionHistory`).
+- **`draft-ingested` is never the working copy.** Derive from it; never write into it
+  (`assert ingest_preserved()` is checked by the Orchestrator on every ingest-mode write).

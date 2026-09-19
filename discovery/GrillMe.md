@@ -2,7 +2,7 @@
 skill: GrillMe
 category: discovery
 purpose: Adaptive one-question-at-a-time interview that elicits raw lived experience and writes it to ExperienceDatabase.
-reads: [EssayState, Requirements]
+reads: [EssayState, Requirements, ClaimEvidenceMap, Drafts]
 writes: [ExperienceDatabase]
 preconditions: [EssayState exists, Requirements exists]
 postconditions: [ExperienceDatabase has >=1 raw experience per required coverage area, last question's information gain < gain_floor]
@@ -40,6 +40,19 @@ are empty or thin. Coverage areas this skill must drive toward (none skipped):
 - **adversity** — a real obstacle (not a humble-brag), how it actually went
 - **growth** — a before/after where they changed
 - **aspirations** — the physician they intend to become
+
+**Ingest mode (targeted interview).** When `EssayState.mode` is `ingest`, the essay already makes
+claims, and the interview's first job is to find out which of them are real. Read
+`ClaimEvidenceMap.md`: every `traceable: false` claim is a target, highest-stakes first (virtue and
+outcome claims before belief claims). Read `Drafts.md` only to quote the claim back accurately. The
+question shape is the same cognitive-interview shape: "Your essay says you led the free clinic
+expansion. Walk me through one specific day of that. Where were you, what went wrong?" If the
+applicant confirms a real scene, record it and the claim becomes traceable; if they cannot, record
+nothing and the claim stays untraceable (its passage is then cut or reworded by
+`PersonalizationReview`, never propped up). Only after every untraceable claim has been asked about
+does the interview widen to the coverage areas below, and only where a thin area would change a
+suggestion. The ingested text is never copied into `ExperienceDatabase`; only what the applicant says
+in answer is.
 
 **ANALYZE** — Find the highest-value gap. Priority: (1) an empty required area; (2) a thin area
 (present but one vague line, no scene); (3) the **thinnest or most surprising part of the last
@@ -97,7 +110,8 @@ NEXT: GrillMe (gain >= floor) | ApplicantModel (gain < floor)
 
 - **One question. Always.** A list of questions is a contract violation, not a shortcut.
 - **The applicant is the only source of truth.** Never write an experience the applicant did not give
-  you. No composite scenes, no "they probably also...". Elicit it or leave the area thin.
+  you. In ingest mode this includes the essay itself: a sentence in the draft is a *claim*, not an
+  experience, until the applicant tells you the scene behind it. No composite scenes, no "they probably also...". Elicit it or leave the area thin.
 - **Drill the surprise, not the script.** The highest-value question is almost always a follow-up into
   the thinnest/most-surprising part of the last answer — that is where unrecorded detail lives.
 - **An adjective is not an experience.** "Resilient" is a claim for later; capture the *scene* that

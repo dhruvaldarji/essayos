@@ -18,6 +18,7 @@ entire process is reconstructable from this file plus the artifacts it points to
 ---
 essay_id: <slug>              # stable id, e.g. "residency-im-2026"
 essay_type: residency | fellowship | personal_statement | diversity | adversity | leadership | specialty | why_program
+mode: compose | ingest     # compose = build from an interview; ingest = review an essay the applicant brought in
 prompt: <verbatim essay prompt>
 word_limit: <int>            # or null if char-limited
 char_limit: <int|null>
@@ -63,17 +64,28 @@ work — the Orchestrator compares hashes here against the artifacts on disk.
   the staleness mechanism: if `ExperienceDatabase` hash changes, anything listing the old `exp:`
   hash becomes `stale`.
 
-## The 16 tracked artifacts
+## The tracked artifacts
 
 EssayState always tracks these (created lazily; `missing` until first written):
 
 1. `Requirements` 2. `ApplicantModel` 3. `ExperienceDatabase` 4. `ExperienceGraph`
 5. `ThemeGraph` 6. `NarrativeModel` 7. `ProgramFitModel` 8. `MessageMap` 9. `Outline`
 10. `SectionSpecifications` 11. `VoiceModel` 12. `Drafts` 13. `ReviewerFeedback`
-14. `RevisionHistory` 15. `QualityMetrics` 16. `LessonsLearned`
+14. `RevisionHistory` 15. `QualityMetrics` 16. `LessonsLearned` 17. `ClaimEvidenceMap`
+18. `IngestReport` (used only in `mode: ingest`; stays `missing` in `mode: compose`)
 
 (`ClaimEvidenceMap` is maintained by `meta/ClaimEvidenceMapper`; `MemoryGraph` is the union view over
 `ExperienceGraph` + `ThemeGraph` maintained by `meta/MemoryGraph`.)
+
+## Modes
+
+- **`compose`** (default) — the essay is built from the interview: Discovery → Architecture → Writing
+  → Review → Verification.
+- **`ingest`** — the applicant brought an existing essay. `system/Ingest` stores it verbatim as
+  `Drafts.draft-ingested`, and the Orchestrator runs the ingest pipeline (`kernel/Orchestrator.md`):
+  reverse-outline, claim mapping, targeted interview, voice model, AI-tell scan, review, and
+  one-suggestion-at-a-time personalization under the ratchet. The mode is set once at
+  initialization and never changes.
 
 ## Shared artifacts across essays
 
@@ -94,6 +106,7 @@ artifacts (Requirements, MessageMap, Outline, Drafts, …) are never shared.
 ---
 essay_id: residency-im-2026
 essay_type: residency
+mode: compose
 prompt: "Why do you want to pursue Internal Medicine, and what makes you a strong fit?"
 word_limit: 750
 program: Internal Medicine

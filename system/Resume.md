@@ -2,7 +2,7 @@
 skill: Resume
 category: system
 purpose: Reconstruct an essay's state purely from artifacts/<essay_id>/ on disk, repair the registry to match reality, and route to the Orchestrator.
-reads: [EssayState, Requirements, ApplicantModel, ExperienceDatabase, ExperienceGraph, ThemeGraph, NarrativeModel, ProgramFitModel, MessageMap, Outline, SectionSpecifications, VoiceModel, Drafts, ReviewerFeedback, RevisionHistory, QualityMetrics, LessonsLearned, ClaimEvidenceMap]
+reads: [EssayState, Requirements, ApplicantModel, ExperienceDatabase, ExperienceGraph, ThemeGraph, NarrativeModel, ProgramFitModel, MessageMap, Outline, SectionSpecifications, VoiceModel, Drafts, ReviewerFeedback, RevisionHistory, QualityMetrics, LessonsLearned, ClaimEvidenceMap, IngestReport]
 writes: [EssayState]
 preconditions: [artifacts/<essay_id>/ exists with at least EssayState.md]
 postconditions: [EssayState registry reflects on-disk reality, hashes recomputed, staleness recomputed, phase inferred, next_skill set to Orchestrator]
@@ -62,6 +62,7 @@ then selects the next real skill from the now-accurate state.
 - `assert reconstructable()` — state was rebuilt from files alone, with no reliance on conversation.
 - `assert registry_matches_disk()` — every row's status and hash equal the recomputed on-disk values.
 - `assert phase_consistent()` — inferred phase is supported by the set of healthy artifacts.
+- `assert ingest_preserved()` — (ingest mode) the applicant's original text is unchanged on disk.
 
 ## Idempotency
 
@@ -87,5 +88,7 @@ NEXT: Orchestrator — resume from the highest-value gap
   artifact is thin or stale, mark it — let the Orchestrator route the right skill to fix it.
 - **Honor staleness on resume.** A hand-edited upstream artifact must mark downstream `stale` here, or
   the Orchestrator will bake the old value into later work (CONVENTIONS §3).
+- **In ingest mode, verify the original first.** Run `assert ingest_preserved()` before anything else; a
+  hand-edited `draft-ingested` is the one drift Resume cannot reconcile, only report.
 - **Do not set converged casually.** `converged: true` requires QualityMetrics `ready_for_submission`
   AND a recorded FinalReviewer YES — never infer it from phase alone.

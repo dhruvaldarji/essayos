@@ -46,11 +46,22 @@ One record per reviewer, keyed by a stable reviewer `id`.
     - id: sug-1
       target_section: sec-2
       change: <a localized, actionable change>
+      before: <the exact span in the current draft|null>
+      after: <the proposed replacement, in the applicant's voice|null>
+      source_experience: <ExperienceDatabase id the after text draws on|null>
+      applicant_decision: proposed | accepted | edited | rejected
+      decided_at: <ISO-8601|null>
 ```
 
 - **upsert by reviewer `id`** — re-reviewing replaces that reviewer's record for the named draft.
 - **suggestions** carry a `target_section` so fixes stay localized (ratchet discipline).
 - **memorability** is a 0–1 proxy feeding `QualityMetrics`.
+- **before / after / source_experience / applicant_decision** are the personalization fields used in
+  `mode: ingest` by `review/PersonalizationReview`. `after` must draw only on `source_experience` (a
+  real `ExperienceDatabase` id) or on words already in the draft; `null` source with new factual
+  content is a fabrication. `RevisionLoop` applies a suggestion only when `applicant_decision` is
+  `accepted` or `edited` (`assert suggestion_approved()`); `proposed` and `rejected` are never
+  applied. In `mode: compose` these fields may be omitted.
 
 ## Idempotency rules
 

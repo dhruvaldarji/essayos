@@ -21,3 +21,10 @@ RevisionLoop can apply and close it by id.
 | id | reviewer | severity (block|major|minor|nit) | location (sec id) | finding | suggested_fix | target_version | status |
 |----|----------|----------------------------------|-------------------|---------|---------------|----------------|--------|
 <!-- | fb-1 | Skeptic | major | sec-2 | "claim of leadership has no evidence" | cite exp-5 or cut | v3 | open | -->
+
+## Suggestions
+
+<!-- ingest mode. One row per proposed change; upsert by id. applied only when applicant_decision is accepted|edited -->
+| id | finding | location (sec id) | before | after | source_experience | applicant_decision | decided_at |
+|----|---------|-------------------|--------|-------|-------------------|--------------------|------------|
+<!-- | sug-1 | fb-1 | sec-2 | "I am a natural leader." | "When the night float intern froze, I took the pager." | exp-5 | proposed | | -->

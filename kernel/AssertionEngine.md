@@ -2,7 +2,7 @@
 skill: AssertionEngine
 category: kernel
 purpose: Define the named assertions that gate quality; run them and emit diagnostics on failure.
-reads: [EssayState, Drafts, ExperienceGraph, ThemeGraph, MessageMap, SectionSpecifications, ClaimEvidenceMap, QualityMetrics]
+reads: [EssayState, Drafts, ExperienceGraph, ThemeGraph, MessageMap, SectionSpecifications, ClaimEvidenceMap, QualityMetrics, ReviewerFeedback, VoiceModel]
 writes: [QualityMetrics, RevisionHistory]
 preconditions: [the artifact under assertion exists]
 postconditions: [each named assertion has a pass/fail + diagnostic]
@@ -34,6 +34,10 @@ Each assertion: a predicate, the proxy used to evaluate it, and what the diagnos
 | `assert timeline_consistent()` | no contradictory dates/sequence | extract temporal markers, check ordering | quote the conflicting markers |
 | `assert claim_traceable(claim)` | claim → experience link exists and is non-fabricated | `ClaimEvidenceMap` has an entry sourced to a real `ExperienceDatabase` id | name the untraceable claim |
 | `assert monotonic_improvement()` | a candidate scores ≥ best by ≥ ε | compare `QualityMetrics.overall` candidate vs best | report the delta and that it is < ε |
+| `assert ai_tells_absent()` | the prose carries no strong AI tell (humanizer §1–§5) and no cluster of ≥2 weak tells (§6–§18) in one section, after VoiceModel licensing | scan against the vendored humanizer catalog (`agent-skills/VENDORED.json` version); mechanical proxy `bin/essayos.mjs assert` → `ai_tells` | quote the span, name the pattern number and name, say strong or cluster |
+| `assert personality_present(section)` | the section reads like a person: ≥1 sentence with the applicant's own reaction, opinion, or a specific sensory detail traceable to `ExperienceDatabase`, AND sentence lengths vary (stdev ≥ 4 words over ≥ 4 sentences, no 4-run of same-word openings) | judge read for the reaction/detail + mechanical proxy `bin/essayos.mjs assert` → `sentence_variance` | say which half failed: "no reaction or detail" or "monotone: n sentences, all a–b words" |
+| `assert suggestion_approved(suggestion)` | a suggestion being applied to `Drafts` has `applicant_decision ∈ {accepted, edited}` and a `decided_at` in `ReviewerFeedback` | look up the suggestion id | name the suggestion applied without a decision, or with `proposed`/`rejected` |
+| `assert ingest_preserved()` | `Drafts.draft-ingested.full_text` still hashes to `Drafts.ingested_hash` (the applicant's original is byte-identical) | recompute and compare | report the hash mismatch and which section changed |
 
 ### System-integrity assertions
 
@@ -43,7 +47,7 @@ Used by the `system/` skills (Init / Status / Resume) to verify the workspace it
 |-----------|-------------|----------------------|-----------------------|
 | `assert workspace_exists()` | `artifacts/<essay_id>/` exists with the seeded artifact files | directory + file presence | name the missing path |
 | `assert state_parses()` | `EssayState.md` front matter parses and has required fields | parse front matter keys | name the missing/malformed field |
-| `assert registry_complete()` | the artifact registry lists all 16 tracked artifacts | count rows vs the canonical list | name the artifact rows missing |
+| `assert registry_complete()` | the artifact registry lists every tracked artifact in `templates/EssayState.md` | count rows vs the canonical list | name the artifact rows missing |
 | `assert registry_covered()` | every artifact file on disk has a registry row and vice-versa | set-compare disk vs registry | name the unlisted/orphan artifact |
 | `assert registry_matches_disk()` | each registry `hash` matches the artifact file's current hash | recompute + compare | name the row whose hash is stale |
 | `assert reconstructable()` | full state is derivable from disk with no conversation context | Resume produces the same `next_skill` from files alone | name what could not be reconstructed |

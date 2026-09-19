@@ -2,7 +2,7 @@
 skill: VoiceModel
 category: writing
 purpose: Infer the applicant's authentic voice fingerprint from their own answer samples so authenticity is checkable.
-reads: [ExperienceDatabase, ApplicantModel]
+reads: [ExperienceDatabase, ApplicantModel, Drafts]
 writes: [VoiceModel]
 preconditions: [ExperienceDatabase exists, ExperienceDatabase has >=3 raw applicant answer samples]
 postconditions: [VoiceModel has a fingerprint covering rhythm, vocabulary, sentence-length distribution, tone, and characteristic phrasings, each grounded in quoted samples]
@@ -26,7 +26,11 @@ not essay-specific, so a second essay reuses the existing VoiceModel rather than
 ## The Loop
 
 **OBSERVE** — Read `EssayState.md`, `ExperienceDatabase.md`, `ApplicantModel.md`. Collect every raw,
-applicant-authored answer span (the verbatim text, not paraphrase). If a VoiceModel already exists,
+applicant-authored answer span (the verbatim text, not paraphrase). In `mode: ingest`, also read
+`Drafts.md`: when `self_authored: true`, `draft-ingested.full_text` is a voice sample too (it is the
+largest one you have); when `self_authored: false` or `null`, it is **not** a sample and must not
+influence the fingerprint, because modeling a model's voice is the failure this skill exists to
+prevent. If a VoiceModel already exists,
 read it and its `source_hashes`.
 
 **ANALYZE** — If `source_hashes` match the current `ExperienceDatabase` + `ApplicantModel` hashes, the
@@ -77,6 +81,7 @@ modulo `updated`. New answers change the ExperienceDatabase hash → VoiceModel 
 ## Output
 
 ```
+SAMPLES: <n> interview spans (+ ingested draft: yes|no, self_authored <true|false>)
 VOICE: <n> dimensions captured, <k> low_confidence
 EVIDENCE: every dimension grounded in >=2 quoted samples | gap: <dimension>
 STALE: <none | downstream Drafts now stale vs new fingerprint>
