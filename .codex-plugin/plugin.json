@@ -1,0 +1,29 @@
+{
+  "name": "essayos",
+  "version": "1.1.0",
+  "description": "An idempotent, stateful, agentic operating system for writing application essays. It interviews you, drafts one section at a time in your voice, reviews an essay you already wrote, and checks that every claim traces to a real experience.",
+  "author": {
+    "name": "Dhruval Darji",
+    "url": "https://github.com/dhruvaldarji"
+  },
+  "homepage": "https://github.com/dhruvaldarji/essayos#readme",
+  "repository": "https://github.com/dhruvaldarji/essayos",
+  "license": "MIT",
+  "keywords": ["essay", "personal-statement", "college-admissions", "scholarship", "writing", "agentic", "idempotent"],
+  "skills": "./agent-skills/",
+  "interface": {
+    "displayName": "EssayOS",
+    "shortDescription": "Write or revise an application essay in your own voice.",
+    "longDescription": "EssayOS interviews you one question at a time, structures your real experiences, drafts one section at a time in your voice, and checks that every claim traces to something you said. It can also ingest an essay you already wrote, find the AI-sounding and generic passages, and propose revisions that you approve one by one. All state lives on disk as Markdown, so you can stop and resume at any time.",
+    "developerName": "Dhruval Darji",
+    "category": "Writing",
+    "capabilities": ["Write", "Review"],
+    "websiteURL": "https://github.com/dhruvaldarji/essayos",
+    "defaultPrompt": [
+      "Start a new application essay with EssayOS.",
+      "Review my existing essay with EssayOS and make it sound like me.",
+      "Show the status of my EssayOS essay."
+    ],
+    "brandColor": "#1F6F5F"
+  }
+}
