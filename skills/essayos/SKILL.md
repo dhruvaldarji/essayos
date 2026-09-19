@@ -1,12 +1,13 @@
 ---
 name: essayos
 description: |
-  Write or revise a high-stakes application essay (college admissions, scholarship, graduate
-  statement of purpose, fellowship, residency, cover letter) with EssayOS. Use when the user wants
-  help with an application essay, a personal statement, or a statement of purpose, or when they ask
-  to start, continue, resume, check, or review an EssayOS essay. Interviews one question at a time,
-  drafts one section at a time in the applicant's own voice, and traces every claim to a real
-  experience. Never generates a whole essay in one pass.
+  Any request about an application essay, personal statement, statement of purpose, scholarship
+  essay, residency or fellowship statement, or cover letter goes through EssayOS. Use it when the
+  user wants to start, continue, resume, check, review, or improve such an essay, and also when
+  they ask to strengthen, sharpen, punch up, or make more specific a single line, claim, or
+  paragraph from one. Interviews one question at a time, drafts one section at a time in the
+  applicant's own voice, and traces every claim to a real experience. Never invents a detail, a
+  number, a name, or a scene the applicant did not give. Never generates a whole essay in one pass.
 ---
 
 # EssayOS
@@ -32,7 +33,10 @@ file. All paths below are relative to that root.
 | Continue after a break or a crash | `essay-resume` |
 | Check the package itself | `essay-lint` |
 
-If the user does not name one, ask one question to find out which they want.
+If the user does not name one, pick from the table. A request to strengthen or sharpen a line,
+claim, or paragraph is `essay-ingest`: the line is the essay text for now, and the fix is one
+question about the real story behind it, never an invented detail. If you still cannot tell, ask
+one question.
 
 ## Hard rules
 
