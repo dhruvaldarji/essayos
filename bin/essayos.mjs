@@ -156,8 +156,11 @@ function lintManifests() {
   if (!claudeEntry) errors.push(`.claude-plugin/marketplace.json: no plugin entry named 'essayos'`);
   else if (claudeEntry.version !== v) errors.push(`.claude-plugin/marketplace.json: essayos entry version ${claudeEntry.version} != package.json ${v}`);
   if (cm.json.metadata && cm.json.metadata.version && cm.json.metadata.version !== v) errors.push(`.claude-plugin/marketplace.json: metadata.version ${cm.json.metadata.version} != package.json ${v}`);
-  // Claude dependencies must resolve inside this marketplace (Claude resolves a bare name in the
-  // declaring plugin's own marketplace) and be pinned to a full commit sha.
+  // essayos declares no plugin dependencies on purpose (the vendored copies in skills/ load in every
+  // runtime; a dependency would duplicate them, disable a bare --plugin-dir load, and pull in the
+  // upstream simple-english hooks). If one is ever declared, it must resolve inside this marketplace
+  // (Claude resolves a bare name in the declaring plugin's own marketplace) and be sha-pinned.
+  if (cp.json.dependencies && cp.json.dependencies.length) errors.push(`.claude-plugin/plugin.json: dependencies declared; essayos bundles its skills in skills/ instead (see ISA decision 2026-09-19)`);
   for (const dep of cp.json.dependencies || []) {
     const name = typeof dep === 'string' ? dep : dep.name;
     const entry = (cm.json.plugins || []).find(p => p.name === name);
@@ -205,11 +208,6 @@ function lintVendored() {
     if (!SHA40.test(sk.sha || '')) errors.push(`VENDORED.json: ${sk.name} sha is not a 40-char commit sha`);
     for (const local of Object.keys(sk.files || {})) if (!existsSync(join(dir, local))) errors.push(`skills/${sk.name}/${local}: listed in VENDORED.json but missing`);
     if (!existsSync(join(dir, 'LICENSE'))) errors.push(`skills/${sk.name}/LICENSE: missing (third-party skill must ship its license)`);
-    // Each vendored skill is also a minimal Claude plugin so a local checkout can satisfy the
-    // essayos dependency (claude --plugin-dir, and the eval suite's `plugins:` list).
-    const mini = readJson(`skills/${sk.name}/.claude-plugin/plugin.json`);
-    if (mini.err) errors.push(mini.err);
-    else { if (mini.json.name !== sk.name) errors.push(`skills/${sk.name}/.claude-plugin/plugin.json: name != '${sk.name}'`); if (mini.json.version !== sk.version) errors.push(`skills/${sk.name}/.claude-plugin/plugin.json: version ${mini.json.version} != pin ${sk.version}`); }
     const skill = read(join(dir, 'SKILL.md'));
     if (skill) {
       const { fm } = split(skill);
@@ -217,8 +215,8 @@ function lintVendored() {
       if (ver !== sk.version) errors.push(`skills/${sk.name}/SKILL.md: metadata.version '${ver}' != VENDORED.json pin '${sk.version}'`);
       if (fmValue(fm, 'name') !== sk.name) errors.push(`skills/${sk.name}/SKILL.md: name != '${sk.name}'`);
     }
-    // The Claude marketplace must pin the SAME version and sha, so Claude (dependency) and Codex
-    // (vendored copy) run identical skill text.
+    // The marketplace's optional standalone entries must pin the SAME version and sha as the bundled
+    // copies, so a user who installs one alongside essayos runs identical skill text.
     if (!cm.err) {
       const entry = (cm.json.plugins || []).find(p => p.name === sk.name);
       if (!entry) errors.push(`.claude-plugin/marketplace.json: no entry for vendored skill '${sk.name}'`);

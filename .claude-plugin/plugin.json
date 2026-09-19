@@ -17,6 +17,5 @@
     "agentic",
     "idempotent",
     "state-machine"
-  ],
-  "dependencies": ["humanizer", "simple-english"]
+  ]
 }

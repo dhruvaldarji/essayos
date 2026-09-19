@@ -32,8 +32,8 @@ is what evaluates it.
 **OBSERVE** — Read `Drafts.md` (the draft under review: `draft-ingested` before any revision, else
 `best/`), `VoiceModel.md` (the applicant's real habits, which can *license* a pattern: if the
 applicant genuinely writes in dashes, dashes are not a tell), and `LessonsLearned` for prior rules.
-Load the humanizer catalog: in Claude Code the `humanizer` skill is installed as a plugin
-dependency; in Codex and other runtimes read `skills/humanizer/SKILL.md`.
+Load the humanizer catalog: the `humanizer` skill bundled with this plugin, or read
+`skills/humanizer/SKILL.md` directly.
 
 **ANALYZE** — Two passes over every section.
 1. **Tell pass.** Walk the catalog strongest first. For each hit record the section, the verbatim span,

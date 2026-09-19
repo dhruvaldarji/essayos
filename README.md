@@ -45,9 +45,9 @@ Add the marketplace, install the plugin, and reload:
 /reload-plugins
 ```
 
-The install also pulls in two skills that EssayOS depends on: `humanizer` (removes AI writing
-patterns) and `simple-english` (plain-English rules for questions and docs). Both come from the same
-marketplace, pinned to a tested version. Confirm the install:
+The plugin bundles two third-party skills: `humanizer` (removes AI writing patterns) and
+`simple-english` (plain-English rules for questions and docs), pinned to a tested version. Nothing
+else to install. Confirm the install:
 
 ```text
 /plugin list --enabled
@@ -289,12 +289,10 @@ To add a pipeline skill, copy the front matter and body shape from an existing s
 that every `reads` and `writes` names a real artifact and that every assertion resolves. The
 contract every skill follows is in [`CONVENTIONS.md`](CONVENTIONS.md).
 
-To try a local checkout in Claude Code, load the plugin and its two dependencies together. The
-plugin declares `humanizer` and `simple-english` as dependencies, and Claude Code disables a plugin
-whose dependencies are not loaded:
+To try a local checkout in Claude Code:
 
 ```bash
-claude --plugin-dir . --plugin-dir skills/humanizer --plugin-dir skills/simple-english
+claude --plugin-dir .
 ```
 
 To update the pinned third-party skills, run `node bin/essayos.mjs skills-sync --update`, review

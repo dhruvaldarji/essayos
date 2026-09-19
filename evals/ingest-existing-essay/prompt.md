@@ -1,6 +1,5 @@
 ---
 description: An applicant pastes an AI-assisted scholarship essay and asks for help making it sound like them. The plugin must start the ingest flow, store the text as-is, and ask exactly one question. It must not rewrite the essay or invent details.
-plugins: ["../..", "../../skills/humanizer", "../../skills/simple-english"]
 tags: [ingest, smoke]
 max_turns: 20
 timeout_seconds: 600

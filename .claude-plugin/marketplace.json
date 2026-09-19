@@ -4,7 +4,7 @@
     "name": "Dhruval Darji"
   },
   "metadata": {
-    "description": "EssayOS, an idempotent, stateful, agentic operating system for writing application essays, plus the two writing skills it depends on.",
+    "description": "EssayOS, an idempotent, stateful, agentic operating system for writing application essays, plus optional standalone installs of the two writing skills it bundles.",
     "version": "1.1.0"
   },
   "plugins": [
@@ -13,8 +13,16 @@
       "source": "./",
       "description": "Idempotent, stateful, agentic OS for writing application essays such as college admissions, scholarship and grant applications, graduate school statements, fellowships, and job letters. Builds the essay from the applicant's real experiences and verifies every claim. Ingests an essay you already wrote and proposes revisions in your voice. Portable Markdown and YAML; runnable by Claude or Codex.",
       "version": "1.1.0",
-      "author": { "name": "Dhruval Darji" },
-      "keywords": ["essay", "residency", "personal-statement", "writing", "agentic"]
+      "author": {
+        "name": "Dhruval Darji"
+      },
+      "keywords": [
+        "essay",
+        "residency",
+        "personal-statement",
+        "writing",
+        "agentic"
+      ]
     },
     {
       "name": "humanizer",
@@ -24,11 +32,19 @@
         "ref": "v3.0.0",
         "sha": "9862685f575c65a8247f90369951df1b3416e3d6"
       },
-      "description": "Dependency of essayos. Rewrite AI-sounding text so it reads naturally without changing what it says. Pinned to upstream v3.0.0.",
+      "description": "Optional standalone install of blader/humanizer, pinned to the same commit essayos ships in skills/humanizer. Not required: essayos carries its own copy.",
       "version": "3.0.0",
-      "author": { "name": "blader" },
+      "author": {
+        "name": "blader"
+      },
       "license": "MIT",
-      "keywords": ["writing", "editing", "humanize", "prose", "style"]
+      "keywords": [
+        "writing",
+        "editing",
+        "humanize",
+        "prose",
+        "style"
+      ]
     },
     {
       "name": "simple-english",
@@ -38,11 +54,18 @@
         "ref": "v2.1.0",
         "sha": "79b590fc8596523d92c26b1ea7e33236606ef069"
       },
-      "description": "Dependency of essayos. Plain, layman-readable English with the discipline of ASD-STE100 Simplified Technical English. Pinned to upstream v2.1.0.",
+      "description": "Optional standalone install of AminBlg/SimpleEnglish, pinned to the same commit essayos ships in skills/simple-english. Not required: essayos carries its own copy. Note: the upstream plugin adds write-time lint hooks.",
       "version": "2.1.0",
-      "author": { "name": "AminBlg" },
+      "author": {
+        "name": "AminBlg"
+      },
       "license": "MIT",
-      "keywords": ["technical-writing", "documentation", "ste", "asd-ste100"]
+      "keywords": [
+        "technical-writing",
+        "documentation",
+        "ste",
+        "asd-ste100"
+      ]
     }
   ]
 }

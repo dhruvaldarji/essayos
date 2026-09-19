@@ -1,6 +1,5 @@
 ---
 description: A plain shell question. The plugin's skills must not fire, and the answer must still be correct.
-plugins: ["../..", "../../skills/humanizer", "../../skills/simple-english"]
 tags: [negative]
 max_turns: 5
 allowed_tools: [Read, Glob, Grep, Skill]

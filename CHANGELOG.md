@@ -20,9 +20,10 @@ All notable changes to EssayOS are documented here. The format is based on
   overlay, `.agents/plugins/marketplace.json`, and entry skills in `skills/` (Agent Skills format)
   that serve Claude Code and Codex from one set of files. `commands/` is gone; the contract docs
   moved to `CONVENTIONS.md` and `SKILLS.md` at the root.
-- **Third-party skills**: humanizer 3.0.0 and simple-english 2.1.0 as Claude plugin dependencies
-  (pinned by commit in the marketplace) and as pinned vendored copies for Codex in `skills/`,
-  recorded in `skills/VENDORED.json` and checked by `node bin/essayos.mjs skills-sync`.
+- **Third-party skills**: humanizer 3.0.0 and simple-english 2.1.0 bundled as pinned copies in
+  `skills/` (loaded by Claude Code and Codex alike), recorded in `skills/VENDORED.json`, checked by
+  `node bin/essayos.mjs skills-sync`, and also listed in the marketplace as optional standalone
+  installs pinned to the same commit.
 - **Spec and evals**: ISA criteria ISC-123 onward, linter checks for manifests, vendored versions,
   eval-suite shape, and plain-English docs, a `tests/fixtures/ai-sounding` fixture, and an `evals/`
   suite in the `claude plugin eval` format with a credential-gated CI job.

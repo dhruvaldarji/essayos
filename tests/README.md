@@ -22,11 +22,13 @@ Checks performed:
 - **Vocabulary**: every artifact named in a `reads`/`writes` has a schema in `schemas/`.
 - **Assertions**: every `assert_name` referenced by a skill exists in `kernel/AssertionEngine.md`.
 - **Manifests**: `package.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, and
-  `.codex-plugin/plugin.json` parse and agree on the version. Claude dependencies resolve to
-  marketplace entries pinned to a commit sha. The Codex `skills` path exists and every skill
-  directory has a `SKILL.md` whose `name` matches the directory.
-- **Vendored skills**: every skill in `skills/VENDORED.json` is present with its LICENSE, and
-  its `SKILL.md` version and the marketplace pin match the recorded version and sha.
+  `.codex-plugin/plugin.json` parse and agree on the version. The root `plugin.json` follows the
+  Agent Plugins schema rules and its interface matches the Codex overlay. The Codex `skills` path
+  exists and every skill directory has a `SKILL.md` whose `name` matches the directory. No plugin
+  `dependencies` are declared.
+- **Vendored skills**: every skill in `skills/VENDORED.json` is present with its LICENSE, its
+  `SKILL.md` version matches the pin, the marketplace's optional standalone entries pin the same
+  commit, and the plugin declares no `dependencies`.
 - **Eval suite shape**: `evals/` has at least four cases, each with a prompt and graders of known
   types. This checks the files, not the behavior.
 - **Plain English**: README, AGENTS.md, CONTRIBUTING.md, the commands, and the entry skills have no
@@ -71,9 +73,6 @@ exist, and stays out of the way on unrelated requests.
 ```
 claude plugin eval . --trust-plugin --ablation none --allow-tools Write Edit --max-cost-usd 5
 ```
-
-Each case lists the plugin and its two vendored dependency plugins in its `plugins` field. Without
-them, Claude Code disables `essayos` for unsatisfied dependencies and every skill grader fails.
 
 Every run and every `llm` grader is a model call on your credentials. CI runs the suite only when
 `ANTHROPIC_API_KEY` is set, under a cost cap, and uploads `results.json`.

@@ -49,20 +49,16 @@ is missing.
 
 ## Testing a checkout in Claude Code
 
-Load the plugin together with its two dependencies. Each vendored skill under `skills/` is
-also a minimal Claude plugin for this purpose:
-
 ```bash
-claude --plugin-dir . --plugin-dir skills/humanizer --plugin-dir skills/simple-english
+claude --plugin-dir .
 ```
 
-If you load only `.`, Claude Code reports the dependencies as missing and disables the plugin. The
-eval cases list all three directories in their `plugins` field for the same reason.
+The plugin declares no dependencies. The two third-party skills it uses are bundled in `skills/`.
 
 ## Updating the pinned third-party skills
 
-`humanizer` and `simple-english` are pinned by version and commit in `skills/VENDORED.json`
-and in `.claude-plugin/marketplace.json`. Run `node bin/essayos.mjs skills-sync` to compare the
+`humanizer` and `simple-english` are pinned by version and commit in `skills/VENDORED.json`, and
+the optional standalone entries in `.claude-plugin/marketplace.json` pin the same commit. Run `node bin/essayos.mjs skills-sync` to compare the
 vendored copies with upstream. Run it with `--update` to pull the newest upstream version into both
 places. Review the diff, run `npm test`, and mention the new version in `CHANGELOG.md`.
 

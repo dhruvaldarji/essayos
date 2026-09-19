@@ -191,13 +191,13 @@ Two external skills are part of the contract. They are pinned; the versions live
 | `humanizer` (blader/humanizer) | 3.0.0 | the AI-tell catalog behind `assert ai_tells_absent()`; an embedded-mode pass over every span written by `IncrementalWriter`, `RevisionLoop`, and `PersonalizationReview`, with the `VoiceModel` quoted spans as the writing sample | changing what a passage says; adding detail |
 | `simple-english` (AminBlg/SimpleEnglish) | 2.1.0 | the wording of every `ask_question()` (§5a), applicant-facing report prose (§9), and this package's own docs | the essay prose, ever (it flattens by design) |
 
-**Where they live.** In Claude Code both are plugin dependencies declared in
-`.claude-plugin/plugin.json` and installed from this repo's marketplace, so they are available as the
-`humanizer` and `simple-english` skills. In Codex the plugin's `skills` path (`skills/`) holds
-pinned copies, so they are available under the same names. In any other runtime, or when a skill by
-that name is not loaded, read `skills/humanizer/SKILL.md` or
-`skills/simple-english/SKILL.md` directly and apply it. The behavior must be identical in all
-three cases; that is why the copies are pinned to the same version the marketplace pins.
+**Where they live.** Both are bundled in the plugin's `skills/` directory as pinned copies, so
+Claude Code loads them as `essayos:humanizer` and `essayos:simple-english`, and Codex loads them
+under the same names from its `skills` path. In any other runtime, or when a skill by that name is
+not loaded, read `skills/humanizer/SKILL.md` or `skills/simple-english/SKILL.md` directly and apply
+it. The plugin declares no dependencies on purpose: a dependency would duplicate the bundled copies,
+disable a bare local load, and install the upstream simple-english write-time hooks. The
+marketplace also lists both upstreams as optional standalone installs pinned to the same commit.
 
 **How the humanizer pass is run.** Embedded mode: input is the span plus the `VoiceModel` quoted
 samples as the writing sample; output is the final text only. The sample overrides the catalog where
